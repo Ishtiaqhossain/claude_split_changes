@@ -5,15 +5,22 @@ function sum(rows) {
   return rows.reduce((acc, t) => acc.plus(t.amount), Money.zero());
 }
 
-// Turn a list of Transactions into a QueryResult that the report renders:
+// Turn a list of Transactions into a QueryResult that formatters render:
 //
 //   { groups: [ { key, rows, subtotal } ], total, grouped }
 //
-// For now this is the identity query: a single group (key=null) holding every
-// row, in original order. Filtering, sorting, and grouping plug in here in
-// later changes; today the result is byte-for-byte the old flat list.
+// Supports filtering by date range, category, and minimum amount. With no
+// filters this is the identity query (one group, all rows), so the default
+// output is unchanged.
 export function applyQuery(transactions, options = {}) {
-  const rows = transactions;
+  const { filters = {} } = options;
+
+  let rows = transactions;
+  if (filters.from) rows = rows.filter((t) => t.date >= filters.from);
+  if (filters.to) rows = rows.filter((t) => t.date <= filters.to);
+  if (filters.category) rows = rows.filter((t) => t.category === filters.category);
+  if (filters.minCents != null) rows = rows.filter((t) => t.amount.cents >= filters.minCents);
+
   const groups = [{ key: null, rows, subtotal: sum(rows) }];
   return { groups, total: sum(rows), grouped: false };
 }

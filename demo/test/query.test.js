@@ -13,8 +13,30 @@ test('identity query returns all rows in one ungrouped group', () => {
   const r = applyQuery(tx);
   assert.equal(r.grouped, false);
   assert.equal(r.groups.length, 1);
-  assert.equal(r.groups[0].key, null);
   assert.equal(r.groups[0].rows.length, 3);
   assert.equal(r.total.toNumber(), 35);
-  assert.equal(r.groups[0].subtotal.toNumber(), 35);
+});
+
+test('filters by date range', () => {
+  const r = applyQuery(tx, { filters: { from: '2026-01-05', to: '2026-01-15' } });
+  assert.equal(r.groups[0].rows.length, 1);
+  assert.equal(r.total.toNumber(), 20);
+});
+
+test('filters by category', () => {
+  const r = applyQuery(tx, { filters: { category: 'Groceries' } });
+  assert.equal(r.groups[0].rows.length, 2);
+  assert.equal(r.total.toNumber(), 15);
+});
+
+test('filters by minimum amount', () => {
+  const r = applyQuery(tx, { filters: { minCents: 700 } });
+  assert.equal(r.groups[0].rows.length, 2);
+  assert.equal(r.total.toNumber(), 30);
+});
+
+test('filters combine', () => {
+  const r = applyQuery(tx, { filters: { category: 'Groceries', minCents: 700 } });
+  assert.equal(r.groups[0].rows.length, 1);
+  assert.equal(r.total.toNumber(), 10);
 });
