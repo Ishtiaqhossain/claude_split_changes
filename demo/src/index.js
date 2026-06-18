@@ -1,8 +1,4 @@
-import { Report } from './report.js';
+import { transactions } from './data.js';
+import { renderReport } from './report.js';
 
-const report = new Report('Sales', [
-  { label: 'Apples', value: 120 },
-  { label: 'Oranges', value: 90 },
-]);
-
-console.log(report.render());
+console.log(renderReport('Expense Report', transactions));

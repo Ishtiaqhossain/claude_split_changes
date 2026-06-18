@@ -1,10 +1,10 @@
 {
-  "name": "pr-splitting-demo",
+  "name": "expense-report",
   "version": "1.0.0",
-  "description": "Sample project demonstrating the splitting-changes-into-prs skill",
+  "description": "Sample project for the splitting-changes-into-prs skill — a large feature landed as a refactor-first stack",
   "type": "module",
   "scripts": {
-    "build": "node --check src/report.js && node --check src/index.js && node src/index.js > /dev/null && echo build ok",
+    "build": "node --check src/index.js && node src/index.js > /dev/null && echo build ok",
     "test": "node --test"
   }
 }
