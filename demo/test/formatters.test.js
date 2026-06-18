@@ -10,15 +10,56 @@ const tx = toTransactions([
 ]);
 const result = applyQuery(tx);
 
-test('registry exposes the text format', () => {
-  assert.deepEqual(formatNames(), ['text']);
+test('registry exposes all output formats', () => {
+  assert.deepEqual(formatNames().sort(), [
+    'csv', 'html', 'json', 'markdown', 'summary', 'table', 'text',
+  ]);
 });
 
-test('text formatter renders rows and a total', () => {
-  const out = getFormatter('text').format('Expenses', result);
-  assert.match(out, /^Expenses\n=+/);
-  assert.match(out, /2026-01-03  Groceries  Apples  \$10\.00/);
-  assert.match(out, /TOTAL  \$30\.00/);
+test('csv has a header and one row per transaction', () => {
+  const csv = getFormatter('csv').format('X', result);
+  const lines = csv.split('\n');
+  assert.equal(lines[0], 'date,category,description,amount');
+  assert.equal(lines.length, 3);
+  assert.match(csv, /2026-01-03,Groceries,Apples,10\.00/);
+});
+
+test('json carries the right totals and shape', () => {
+  const json = JSON.parse(getFormatter('json').format('X', result));
+  assert.equal(json.total, 30);
+  assert.equal(json.grouped, false);
+  assert.equal(json.groups[0].rows.length, 2);
+});
+
+test('markdown has a table header and a total', () => {
+  const md = getFormatter('markdown').format('X', result);
+  assert.match(md, /^# X/);
+  assert.match(md, /\| Date \| Category \| Description \| Amount \|/);
+  assert.match(md, /\*\*Total:\*\* \$30\.00/);
+});
+
+test('html escapes special characters and includes a total', () => {
+  const escTx = toTransactions([
+    { date: '2026-01-03', category: 'A&B', description: '<x>', amount: 1 },
+  ]);
+  const html = getFormatter('html').format('T', applyQuery(escTx));
+  assert.match(html, /A&amp;B/);
+  assert.match(html, /&lt;x&gt;/);
+  assert.match(html, /Total/);
+});
+
+test('table aligns columns and includes a TOTAL row', () => {
+  const out = getFormatter('table').format('Report', result);
+  assert.equal(out.split('\n')[0], 'Report');
+  assert.match(out, /Date {2,}Category/);
+  assert.match(out, /TOTAL {2,}\$30\.00/);
+});
+
+test('summary without budgets lists category totals', () => {
+  const out = getFormatter('summary').format('S', result);
+  assert.match(out, /Dining: \$20\.00/);
+  assert.match(out, /Groceries: \$10\.00/);
+  assert.match(out, /TOTAL {2}\$30\.00/);
 });
 
 test('unknown format throws', () => {
