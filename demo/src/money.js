@@ -17,6 +17,20 @@ export class Money {
     return new Money(this.cents + other.cents);
   }
 
+  minus(other) {
+    return new Money(this.cents - other.cents);
+  }
+
+  // This as a percentage of `whole` (0 when whole is zero), rounded to an int.
+  percentOf(whole) {
+    if (whole.cents === 0) return 0;
+    return Math.round((this.cents / whole.cents) * 100);
+  }
+
+  isGreaterThan(other) {
+    return this.cents > other.cents;
+  }
+
   // Sort comparator helper: negative / zero / positive.
   compareTo(other) {
     return this.cents - other.cents;
@@ -27,6 +41,7 @@ export class Money {
   }
 
   toString() {
-    return `$${(this.cents / 100).toFixed(2)}`;
+    const sign = this.cents < 0 ? '-' : '';
+    return `${sign}$${(Math.abs(this.cents) / 100).toFixed(2)}`;
   }
 }

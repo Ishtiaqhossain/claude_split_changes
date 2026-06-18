@@ -24,3 +24,19 @@ test('compareTo orders amounts', () => {
   assert.ok(Money.fromDollars(20).compareTo(Money.fromDollars(10)) > 0);
   assert.equal(Money.fromDollars(5).compareTo(Money.fromDollars(5)), 0);
 });
+
+test('minus can go negative and renders with a leading minus', () => {
+  const r = Money.fromDollars(10).minus(Money.fromDollars(30));
+  assert.equal(r.cents, -2000);
+  assert.equal(r.toString(), '-$20.00');
+});
+
+test('percentOf is rounded and zero-safe', () => {
+  assert.equal(Money.fromDollars(94).percentOf(Money.fromDollars(80)), 118);
+  assert.equal(Money.fromDollars(5).percentOf(Money.zero()), 0);
+});
+
+test('isGreaterThan compares amounts', () => {
+  assert.ok(Money.fromDollars(20).isGreaterThan(Money.fromDollars(10)));
+  assert.ok(!Money.fromDollars(10).isGreaterThan(Money.fromDollars(20)));
+});

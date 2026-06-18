@@ -9,13 +9,27 @@ function categoryTotals(result) {
   return [...totals.entries()].sort((a, b) => a[0].localeCompare(b[0]));
 }
 
-// Renders a high-level summary: one line per category with its total.
+// Renders a high-level summary. When the result carries budget evaluation
+// (result.budgets), it shows spent vs. budget and an OVER/ok status; otherwise
+// it shows category totals.
 export class SummaryFormatter {
   format(title, result) {
     const lines = [title, '='.repeat(title.length)];
-    for (const [category, total] of categoryTotals(result)) {
-      lines.push(`${category}: ${total.toString()}`);
+
+    if (result.budgets) {
+      for (const b of result.budgets) {
+        const status = b.budget.cents === 0 ? '(no budget)' : b.overBudget ? 'OVER' : 'ok';
+        const pct = b.percent == null ? '' : ` (${b.percent}%)`;
+        lines.push(
+          `${b.category}: ${b.spent.toString()} of ${b.budget.toString()}${pct} — ${status}`,
+        );
+      }
+    } else {
+      for (const [category, total] of categoryTotals(result)) {
+        lines.push(`${category}: ${total.toString()}`);
+      }
     }
+
     lines.push('-'.repeat(title.length));
     lines.push(`TOTAL  ${result.total.toString()}`);
     return lines.join('\n');
