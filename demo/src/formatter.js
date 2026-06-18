@@ -28,8 +28,5 @@ export function registerFormatter(name, formatter) {
   formatters[name] = formatter;
 }
 
-// Feature flag: CSV export stays off until it is wired into the CLI (next PR).
-// With the flag off, 'csv' is not registered and existing behavior is unchanged.
-if (process.env.ENABLE_CSV_EXPORT === 'true') {
-  registerFormatter('csv', new CsvFormatter());
-}
+// CSV export is now wired into the CLI, so it is always available.
+registerFormatter('csv', new CsvFormatter());
