@@ -70,6 +70,40 @@ A change does "one thing" when it passes three acceptance tests:
 A change that builds but has no way to prove it works is not done — "buildable and testable by
 itself" is one requirement, not two optional ones.
 
+## Right-Sizing: Don't Over-Split
+
+"One thing" is about a single *concern*, not a minimum line count. The failure mode this
+section guards against is the opposite of a megachange: shattering a large change into so many
+tiny pieces that the **stack itself** becomes the problem.
+
+Over-splitting has real costs. Every change carries fixed overhead — a review round-trip,
+approvals, a CI/presubmit run, a rebase when its parent lands. Twenty changes that only make
+sense together cost twenty times that overhead and give the reviewer a *worse* experience than
+one well-organized change: they have to hold the whole stack in their head to understand the
+first piece.
+
+**Right-size, don't minimize.** Aim for the *fewest* changes that each still do one thing and
+stand on their own.
+
+- **Don't split a single concern to hit a line target.** If change 1 can't be understood,
+  tested, or motivated without change 2, they're one change. Fold them.
+- **Each change must be motivatable alone.** Its description should justify landing it on its
+  own terms — not "setup for the next one." A change with no independent value and no test of
+  its own is a fragment; merge it upward.
+- **Batch trivial, same-concern, same-owner edits.** One "prep" refactor that renames a symbol
+  across a module beats one change per call site. (If it's thousands of call sites, it's an
+  LSC — see [At Scale](#at-scale).)
+- **Keep stacks shallow — roughly 3–7 deep.** A deeper stack usually means one of two things:
+  some changes are actually independent and should base on trunk and review in parallel, or the
+  work is really a codemod/LSC rather than a hand-built stack.
+
+> **Over-split litmus:** if you can't write a one-line motivation for a change without
+> referencing a *later* change in the stack, it's too small. Merge it upward.
+
+The target is a small number of cohesive changes, not the largest possible number of tiny ones.
+A large change is not an instruction to produce many PRs — it's an instruction to find the
+*natural seams*, which are usually few.
+
 ## The Decomposition Process
 
 ```
@@ -103,7 +137,9 @@ prepare the ground come first; the feature that uses them comes last.
 
 ### 4. Size & scope each change
 
-Target ~200–400 lines of meaningful diff. Two scale-aware criteria sharpen the split:
+Target ~200–400 lines of meaningful diff — but never split a single concern below the point
+where it can stand alone (see [Right-Sizing](#right-sizing-dont-over-split)). Two scale-aware
+criteria sharpen the split:
 
 - **Split along ownership boundaries.** Carve changes so each one touches a coherent
   OWNERS / CODEOWNERS set. A change needing six teams' approval blocks on the slowest of six;
@@ -312,6 +348,8 @@ this stack as real PRs #2–#5, with the monolith as the contrasting PR #1.)*
 | Rationalization | Reality |
 |---|---|
 | "It's all one feature — splitting is artificial" | The feature is one thing; the refactor that *enables* it is another. Ship them as separate changes. |
+| "Smaller is always better — split it as far as it goes" | Below the single-concern threshold it's worse: more changes means more review round-trips, CI runs, and rebases, plus a reviewer who must read the whole stack to understand change 1. Right-size, don't minimize. |
+| "It's a big change, so it should become many PRs" | A big change means *find the natural seams* — usually few. Line count is the symptom; concerns are the unit. One cohesive 400-line change beats five fragments that only make sense together. |
 | "Reviewers can follow a big change" | They LGTM it instead of reviewing it. Small, single-purpose changes get real scrutiny. |
 | "Our monorepo tooling handles big changes fine" | Tooling moves bytes; it doesn't make a 900-line diff reviewable or a wide presubmit cheap. Review quality and CI cost still scale with size. |
 | "Stacking adds review overhead" | Native stacking tools make a stack *cheaper* than re-reviewing one megachange every time it changes. The overhead is in the megachange. |
@@ -326,6 +364,9 @@ this stack as real PRs #2–#5, with the monolith as the contrasting PR #1.)*
 - One change mixes a refactor with a behavior change
 - A change adds behavior but ships no test for it
 - A stack so deep the bottom never lands and the top rots (or the land queue never drains it)
+- A change with no independent motivation or test — it exists only as setup for the next one
+- A single cohesive concern split across several changes just to hit a line-count target
+- A reviewer must read change 7 to understand why change 1 exists
 - One change sprawls across many OWNERS, blocking on the slowest approver
 - Hand-splitting what should be a codemod / LSC
 - The dependency lives only in your head — not in any title, description, or stack graph
@@ -335,7 +376,7 @@ this stack as real PRs #2–#5, with the monolith as the contrasting PR #1.)*
 
 Before submitting the stack, confirm for **every** change:
 
-- [ ] It does exactly one thing (title needs no "and")
+- [ ] It does exactly one thing (title needs no "and") — but is not a fragment: its motivation stands without referencing a later change
 - [ ] It builds on its own revision
 - [ ] It ships its own tests and the suite is green at its revision
 - [ ] It passes presubmit/CI independently, at its position in the stack
