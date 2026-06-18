@@ -1,4 +1,7 @@
-// A Report holds rows and renders them. Today it only renders plain text.
+import { TextFormatter } from './formatter.js';
+
+// A Report holds rows and renders them. Rendering is delegated to a
+// formatter; the public behavior is unchanged (still plain text).
 export class Report {
   constructor(title, rows) {
     this.title = title;
@@ -6,10 +9,6 @@ export class Report {
   }
 
   render() {
-    const lines = [this.title, '='.repeat(this.title.length)];
-    for (const row of this.rows) {
-      lines.push(`${row.label}: ${row.value}`);
-    }
-    return lines.join('\n');
+    return new TextFormatter().format(this.title, this.rows);
   }
 }
