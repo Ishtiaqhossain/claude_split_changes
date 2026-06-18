@@ -1,20 +1,17 @@
 import { toTransactions } from './transaction.js';
 import { applyQuery } from './query.js';
+import { getFormatter } from './formatters/index.js';
 
-// Builds a plain-text expense report. Rows now flow through the query pipeline
-// (applyQuery), which today returns the identity result, so the text output is
-// unchanged. This is a pure refactor that introduces the seam features hang off.
-export function renderReport(title, transactions) {
+// Generate a report: convert raw rows -> Transactions, run the query pipeline,
+// then render with the chosen formatter (default text).
+export function generateReport(title, transactions, options = {}) {
+  const { format = 'text' } = options;
   const result = applyQuery(toTransactions(transactions));
-  const lines = [title, '='.repeat(title.length)];
+  return getFormatter(format).format(title, result);
+}
 
-  for (const group of result.groups) {
-    for (const t of group.rows) {
-      lines.push(`${t.date}  ${t.category}  ${t.description}  ${t.amount.toString()}`);
-    }
-  }
-
-  lines.push('-'.repeat(title.length));
-  lines.push(`TOTAL  ${result.total.toString()}`);
-  return lines.join('\n');
+// Back-compat: the original text-only entry point. Kept so existing callers and
+// tests that just want "the text report" don't have to change.
+export function renderReport(title, transactions) {
+  return generateReport(title, transactions, { format: 'text' });
 }
