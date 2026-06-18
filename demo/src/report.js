@@ -1,19 +1,20 @@
-// Builds a plain-text expense report.
-//
-// Today, text is the only output format and the totalling logic lives inline
-// right here. Adding more formats, filtering, or grouping by changing this one
-// function would make it sprawl — which is exactly why the feature is landed as
-// a refactor-first stack (model -> formatter seam -> query pipeline -> features).
+import { toTransactions } from './transaction.js';
+import { Money } from './money.js';
+
+// Builds a plain-text expense report. Rows are now typed Transactions and the
+// total is summed as Money (integer cents), so there is no floating-point drift.
+// The output is byte-for-byte identical to before — this is a pure refactor.
 export function renderReport(title, transactions) {
+  const rows = toTransactions(transactions);
   const lines = [title, '='.repeat(title.length)];
 
-  let total = 0;
-  for (const t of transactions) {
-    total += t.amount;
-    lines.push(`${t.date}  ${t.category}  ${t.description}  $${t.amount.toFixed(2)}`);
+  let total = Money.zero();
+  for (const t of rows) {
+    total = total.plus(t.amount);
+    lines.push(`${t.date}  ${t.category}  ${t.description}  ${t.amount.toString()}`);
   }
 
   lines.push('-'.repeat(title.length));
-  lines.push(`TOTAL  $${total.toFixed(2)}`);
+  lines.push(`TOTAL  ${total.toString()}`);
   return lines.join('\n');
 }
