@@ -1,0 +1,29 @@
+diff --git a/index.js b/index.js
+index 401605a..a86f76c 100644
+--- a/index.js
++++ b/index.js
+@@ -135,16 +135,17 @@ export default class QuickLRU extends Map {
+ 		return this;
+ 	}
+ 
+-	has(key) {
+-		if (this.#cache.has(key)) {
+-			return !this.#deleteIfExpired(key, this.#cache.get(key));
+-		}
++	#getItem(key) {
++		return this.#cache.get(key) ?? this.#oldCache.get(key);
++	}
+ 
+-		if (this.#oldCache.has(key)) {
+-			return !this.#deleteIfExpired(key, this.#oldCache.get(key));
++	has(key) {
++		const item = this.#getItem(key);
++		if (item === undefined) {
++			return false;
+ 		}
+ 
+-		return false;
++		return !this.#deleteIfExpired(key, item);
+ 	}
+ 
+ 	peek(key) {

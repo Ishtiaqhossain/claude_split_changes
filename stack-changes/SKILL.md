@@ -289,8 +289,8 @@ Refactor-first: a prepared stack
 By the time change 4 lands, the "feature" is a tiny diff because changes 1–2 did the structural
 work in isolation, where it was easy to verify they changed nothing.
 
-*(This repo's `validation/demo/` carries this further — an expense-report change as the monolith **PR #11**
-vs an 8-PR refactor-first stack, **#12–#19**.)*
+*(This repo's `validation/demo/` carries this further — an expense-report monolith carved into a
+refactor-first stack of small PRs.)*
 
 ## Bad Split vs Good Split
 

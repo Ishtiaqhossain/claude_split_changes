@@ -65,6 +65,7 @@ jobs:
       matrix:
         include:
           - { entry: 'yocto-queue (node)',      toolchain: node,   script: validation/eval/corpus/yocto-queue.sh }
+          - { entry: 'quick-lru (node)',        toolchain: node,   script: validation/eval/corpus/quick-lru.sh }
           - { entry: 'more-itertools (python)', toolchain: python, script: validation/eval/corpus/more-itertools.sh }
           - { entry: 'google/uuid (go)',        toolchain: go,     script: validation/eval/corpus/google-uuid.sh }
     steps:

@@ -132,10 +132,10 @@ human (or another tool) reviews them.
 ```
 stack-changes/        THE SKILL — SKILL.md + a review-system detector (fixture-tested). Install this.
 validation/           proves the skill works (not needed to use it):
-  demo/                 before/after example, npm: monolith (PR #11) vs stack (#12–#19)
+  demo/                 before/after example, npm: the monolith vs the refactor-first stack
   demo-split/           local break-up walkthrough + the large sample change
   demo-py/              second build system: the same split in a Python project (tags py-0…py-3)
-  eval/                 grades splits of real outside repos (yocto-queue, quick-lru)
+  eval/                 grades splits of real outside repos (yocto-queue, quick-lru, more-itertools, google/uuid)
   scripts/verify-stack.sh   checks out each stack node and builds + tests it
   VALIDATION.md         what's proven (detector matrix, per-node green) and how
 MAP.md                one-line tour of every folder — start here if it feels like a lot

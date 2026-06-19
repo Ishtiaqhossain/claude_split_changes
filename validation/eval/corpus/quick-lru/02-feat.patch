@@ -1,0 +1,46 @@
+diff --git a/index.js b/index.js
+index a86f76c..523f505 100644
+--- a/index.js
++++ b/index.js
+@@ -148,6 +148,13 @@ export default class QuickLRU extends Map {
+ 		return !this.#deleteIfExpired(key, item);
+ 	}
+ 
++	expiresIn(key) {
++		const item = this.#getItem(key);
++		if (item) {
++			return item.expiry ? item.expiry - Date.now() : Number.POSITIVE_INFINITY;
++		}
++	}
++
+ 	peek(key) {
+ 		if (this.#cache.has(key)) {
+ 			return this.#peek(key, this.#cache);
+diff --git a/test.js b/test.js
+index 534bd48..01d0be3 100644
+--- a/test.js
++++ b/test.js
+@@ -783,3 +783,23 @@ test('handles circular references gracefully', t => {
+ 	t.is(lru.toString(), 'QuickLRU(2/2)');
+ 	t.is(Object.prototype.toString.call(lru), '[object QuickLRU]');
+ });
++
++test('.expiresIn() - non-existing key yields undefined', t => {
++  const lru = new QuickLRU({maxSize: 100});
++  t.is(lru.expiresIn('nope'), undefined);
++});
++
++test('.expiresIn() - existing key without ttl', t => {
++  const lru = new QuickLRU({maxSize: 100});
++  lru.set('infinity', 'no ttl given');
++  t.is(lru.expiresIn('infinity'), Number.POSITIVE_INFINITY);
++});
++
++test('.expiresIn() - existing key with ttl', async t => {
++  const lru = new QuickLRU({maxSize: 100});
++  lru.set('100ms', 'ttl given', {maxAge: 100});
++  t.is(lru.expiresIn('100ms'), 100);
++  await delay(50);
++  const ttl = lru.expiresIn('100ms');
++  t.true(ttl > 40 && ttl < 60);
++});

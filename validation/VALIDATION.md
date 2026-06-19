@@ -9,7 +9,7 @@ expert review framework.
 | Item | Status | Evidence |
 |------|--------|----------|
 | Layer 1 — detector fixture matrix (incl. adversarial) passes in CI | ✅ | [`stack-changes/scripts/detect-review-system.test.sh`](../stack-changes/scripts/detect-review-system.test.sh) — 12 cases; CI job `detector`. |
-| Layer 2 — decomposition reasoning proven on an *independent* corpus | ◑ **started** | Harness ([`eval/`](eval/)) + **4 independent, build-verified** splits across **3 build systems**: yocto-queue (npm, easy), **quick-lru (npm, hard — a real behavior-preserving refactor)**, more-itertools (**python**), google/uuid (**go**, compiled). node/python/go run continuously in the CI `corpus` matrix. Still open: Cargo/Gradle + the 3×-per-repo pass-rate. Rubric + corpus log below. |
+| Layer 2 — decomposition reasoning proven on an *independent* corpus | ◑ **started** | Harness ([`eval/`](eval/)) + **4 independent, build-verified** splits across **3 build systems**: yocto-queue (npm, easy), **quick-lru (npm, hard — a real behavior-preserving refactor)**, more-itertools (**python**), google/uuid (**go**, compiled). All four run continuously in the CI `corpus` matrix. Still open: Cargo/Gradle + the 3×-per-repo pass-rate. Rubric + corpus log below. |
 | Layer 3 — per-revision build/test loop in the skill, demonstrated green on 2+ build systems | ✅ | Skill section "Verify the Stack"; [`scripts/verify-stack.sh`](scripts/verify-stack.sh); transcript below; CI job `verify-stack`. |
 | README install commands work as written | ✅ | Clone URL → HTTP 200; repo name `claude_stack_changes`; demo PRs #11–#19 resolve. |
 | Detector failure modes + no-script fallback documented | ✅ | `SKILL.md` → "Detecting Your Review System". |
@@ -73,7 +73,7 @@ one-shot — and it is the single biggest remaining gap between "works here" and
 | # | Repo | Bundled change → split | Build sys | Topo valid (objective) | Notes |
 |---|------|------------------------|-----------|------------------------|-------|
 | 1 | [`sindresorhus/yocto-queue`](https://github.com/sindresorhus/yocto-queue) | `.peek()` + `.drain()` → 2 nodes | npm / ava | ✅ `verify-stack` green (2/2) | Real external code. **Easy** — two independent features, trivial topology, no refactor. Rubric: topo ✅ · separation n/a · no-over-split ✅ · test-proof ✅ · mechanics ✅ (github→branch-per-PR). |
-| 2 | [`sindresorhus/quick-lru`](https://github.com/sindresorhus/quick-lru) | add `.expiresIn()` → **refactor-first**: [1] extract `#getItem` seam, [2] add feature | npm / ava | ✅ `verify-stack` green (2/2) | Real external code. **Hard — exercises the refactor/behavior seam** (the most common one, and the hardest to verify). Node 1 is a genuine *behavior-preserving* refactor: `test.js` byte-unchanged vs base **and** ava green (71) — the proof. Node 2 adds the feature on the seam (ava 74). Rubric: topo ✅ · refactor/behavior separated ✅ (test diff = 0) · no-over-split ✅ · test-proof ✅ · mechanics ✅. |
+| 2 | [`sindresorhus/quick-lru`](https://github.com/sindresorhus/quick-lru) | add `.expiresIn()` → **refactor-first**: [1] extract `#getItem` seam, [2] add feature | npm / ava | ✅ `verify-stack` green (2/2) **in CI** | Real external code. **Hard — exercises the refactor/behavior seam** (the most common one, and the hardest to verify). Node 1 is a genuine *behavior-preserving* refactor: `test.js` byte-unchanged vs base **and** ava green (71) — the proof. Node 2 adds the feature on the seam (ava 74). Rubric: topo ✅ · refactor/behavior separated ✅ (test diff = 0) · no-over-split ✅ · test-proof ✅ · mechanics ✅. |
 | 3 | [`more-itertools/more-itertools`](https://github.com/more-itertools/more-itertools) | `seekable.__getitem__` + `subfactorial()` → 2 nodes | **python / unittest** | ✅ `verify-stack` green (2/2) **in CI** | Real external code — **second build system**. Two independent feature additions (cherry-picks verified clean locally; the *tests* run on CI's Python 3.12, since the repo needs 3.10+ and the local sandbox is 3.9). Enforced by the CI `corpus` matrix. Rubric: topo ✅ · separation n/a · no-over-split ✅ · test-proof ✅ · mechanics ✅. |
 | 4 | [`google/uuid`](https://github.com/google/uuid) | `Compare()` + validation error types → 2 nodes | **go / go test** | ✅ `verify-stack` green (2/2) **in CI** | Real external code — **third build system, and the first *compiled* one**. Zero dependencies (pure stdlib), so `go test` needs no network. Cherry-picks verified clean locally; `go build`+`go test` run on CI's Go (none in the local sandbox). CI `corpus` matrix. Rubric: topo ✅ · separation n/a · no-over-split ✅ · test-proof ✅ · mechanics ✅. |
 
@@ -87,22 +87,21 @@ git cherry-pick --no-edit d631ea8 && git tag yq-2-drain  # [2/2] add .drain()
 <this-repo>/eval/run-eval.sh "$PWD" "npx ava" yq-1-peek yq-2-drain
 ```
 
-Reproduce #2 (quick-lru, the hard case):
+Reproduce #2 (quick-lru, the hard case) — now scripted + CI-enforced:
 ```sh
-git clone https://github.com/sindresorhus/quick-lru qlru && cd qlru && npm install
-git checkout -B split "$(git rev-parse 6c0efa5^)"            # base, before .expiresIn()
-# [1/2] refactor — extract `#getItem(key){ return #cache.get(key) ?? #oldCache.get(key) }`
-#       and rewrite has() to use it (behavior-preserving). Commit, tag ql-1-refactor.
-# [2/2] feat — add expiresIn() using #getItem + its tests. Commit, tag ql-2-feat.
-<this-repo>/eval/run-eval.sh "$PWD" "npx ava" ql-1-refactor ql-2-feat
-# proof the refactor preserved behavior: `git diff <base> -- test.js` is empty, ava green.
+bash validation/eval/corpus/quick-lru.sh   # clones, replays the authored split, verifies
 ```
+The authored edits live as patches in `validation/eval/corpus/quick-lru/`; the script applies them,
+asserts the refactor node leaves `test.js` byte-unchanged, then runs `verify-stack` (ava) over both
+nodes. (This is the one corpus entry whose split was a skill *judgment call*, not the maintainers'
+own commits — so it's authored, hence the patches rather than cherry-picks.)
 
 **Honest status:** **four independent, build-verified** splits across **three build systems** —
 npm/ava (yocto-queue *easy*; quick-lru *hard*, a genuine behavior-preserving refactor),
 python/unittest (more-itertools), and **go/`go test`** (google/uuid — the first *compiled* language) —
-each cloned from code the author didn't write and verified node-by-node. Three of them (node,
-python, go) run continuously in the CI `corpus` matrix.
+each cloned from code the author didn't write and verified node-by-node. **All four now run
+continuously in the CI `corpus` matrix** (yocto-queue + quick-lru on node, more-itertools on python,
+google/uuid on go).
 
 **What each entry actually proves (important distinction).** Entries 1, 3, and 4 split the
 maintainers' *own* two feature commits — so they prove the **harness** and the **objective

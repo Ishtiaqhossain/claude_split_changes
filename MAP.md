@@ -22,7 +22,7 @@ Exists only to show Layer 1 is trustworthy. **The whole jacket lives in one fold
 |------|------------|---------|
 | `validation/demo/`, `validation/demo-split/`, `validation/demo-py/` | worked before/after splits (npm + Python) | "show me an example" |
 | `validation/scripts/verify-stack.sh` | checks out each split node and builds + tests it | "prove each PR stands alone" |
-| `validation/eval/` | grades splits of real *outside* repos (yocto-queue, quick-lru) | "prove it works on repos you didn't build" |
+| `validation/eval/` | grades splits of real *outside* repos (yocto-queue, quick-lru, more-itertools, google/uuid) | "prove it works on repos you didn't build" |
 | `validation/VALIDATION.md` | tracks every claim → its proof (asserted → observed) | "is it really validated?" |
 | `.github/workflows/ci.yml` | runs all the proofs on every push | keep them honest over time |
 | `README.md`, `assets/` | the storefront | presentation |
