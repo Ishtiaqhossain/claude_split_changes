@@ -40,9 +40,9 @@ The three refactors land **first**, so each feature is a small, obvious diff.
 **Install** — personal Claude Code skills live in `~/.claude/skills/<name>/SKILL.md`:
 
 ```bash
-git clone https://github.com/Ishtiaqhossain/claude_split_changes.git
+git clone https://github.com/Ishtiaqhossain/claude_stack_changes.git
 mkdir -p ~/.claude/skills
-cp -r claude_split_changes/stack-changes ~/.claude/skills/stack-changes
+cp -r claude_stack_changes/stack-changes ~/.claude/skills/stack-changes
 ```
 
 **Use** — open Claude Code in a git repo and run:
@@ -70,8 +70,8 @@ cp -r claude_split_changes/stack-changes ~/.claude/skills/stack-changes
 ## See it in action
 
 - **Before vs. after, as real PRs** — [`demo/`](demo/):
-  [PR&nbsp;#11](https://github.com/Ishtiaqhossain/claude_split_changes/pull/11) is a 1,019-line
-  monolith; [#12–#19](https://github.com/Ishtiaqhossain/claude_split_changes/pull/12) is the
+  [PR&nbsp;#11](https://github.com/Ishtiaqhossain/claude_stack_changes/pull/11) is a 1,019-line
+  monolith; [#12–#19](https://github.com/Ishtiaqhossain/claude_stack_changes/pull/12) is the
   refactor-first stack, each PR green on its own. Open #11, try to review it, then walk the stack.
   ```sh
   cd demo && npm test     # the demos are Node projects (Node 18+)
