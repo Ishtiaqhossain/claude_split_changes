@@ -39,7 +39,7 @@ The three refactors land **first**, so each feature is a small, obvious diff.
 
 ## Quick start
 
-**Install** — personal Claude Code skills live in `~/.claude/skills/<name>/SKILL.md`:
+**Install** — personal Claude Code skills live in `~/.claude/skills/{skill-name}/SKILL.md`:
 
 ```bash
 git clone https://github.com/Ishtiaqhossain/claude_stack_changes.git
