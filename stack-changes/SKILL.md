@@ -429,6 +429,21 @@ git rebase --onto main stack/1-seam stack/2-registry
 git push --force-with-lease
 ```
 
+**If a rebase reports a conflict — stop. This is the corruption point.** Do **not** resolve
+conflicts you don't fully understand, and never `git rebase --continue` by guessing — a wrong
+resolution silently rewrites what a "refactor" did (the exact failure the warning above is about):
+
+```sh
+git rebase --abort     # restores the branch to exactly where it was — nothing is lost
+git status             # confirm you're back, clean
+```
+
+Then **surface it to the user**: report which branch failed to rebase onto which base and the
+conflicting files, and ask how to proceed (resolve it together, re-order the stack, or switch to a
+stacking tool). After *any* successful rebase, **re-run the
+[per-revision verify loop](#verify-the-stack-per-revision) for that branch and every branch stacked
+above it** — a wrong base corrupts everything on top, so one green node is not proof.
+
 ## Communicating the Dependency
 
 Even when the tool tracks the stack structurally, the **title** should still tell a human

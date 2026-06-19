@@ -19,6 +19,14 @@ root="$(git rev-parse --show-toplevel 2>/dev/null)" \
 cd "$root" 2>/dev/null || { echo unknown; exit 2; }
 
 detect() {
+  # Resolve git-dir paths THROUGH git, not by assuming `.git/` is a directory: in a
+  # worktree or submodule `.git` is a *file* (a gitdir pointer). The commit-msg hook lives
+  # in the common dir (`--git-path` finds it); `.graphite_repo_config` is a repo-level file,
+  # also in the common dir (`--git-common-dir`, NOT `--git-path`, which points per-worktree).
+  local hook gt_cfg
+  hook="$(git rev-parse --git-path hooks/commit-msg 2>/dev/null)"
+  gt_cfg="$(git rev-parse --git-common-dir 2>/dev/null)/.graphite_repo_config"
+
   # Sapling — native commit-per-change (the stack is your commit stack).
   if [ -d .sl ] || sl root >/dev/null 2>&1; then
     echo sapling; return
@@ -33,13 +41,13 @@ detect() {
   # remote, so a github.com repo that merely imported a Gerrit patch is not
   # misread as Gerrit.
   if [ -f .gitreview ] \
-     || grep -qs Change-Id .git/hooks/commit-msg 2>/dev/null \
+     || { [ -n "$hook" ] && grep -qs Change-Id "$hook" 2>/dev/null; } \
      || { ! git remote -v 2>/dev/null | grep -qiE 'github\.com|gitlab\.com|bitbucket\.org' \
           && git log -30 --format='%B' 2>/dev/null | grep -q '^Change-Id:'; }; then
     echo gerrit; return
   fi
   # GitHub + a stacking tool — commit-per-change *workflow* over branch-per-PR.
-  if [ -f .git/.graphite_repo_config ] \
+  if [ -f "$gt_cfg" ] \
      || git config --get-regexp '^(ghstack|spr)\.' >/dev/null 2>&1 \
      || [ -f .spr.yml ] || [ -f .spr.yaml ]; then
     echo github-stacked; return

@@ -81,5 +81,26 @@ sub="$(mktemp -d)"
 ) || results=1
 rm -rf "$sub"
 
+# Worktrees (and submodules): `.git` is a *file*, so hardcoded `.git/...` paths break.
+# Signals must resolve through git — the commit-msg hook (--git-path) and the graphite
+# config (--git-common-dir). Plant the marker in the MAIN repo, detect from the worktree.
+wt_check() { # name  want_mode  setup-in-main
+  local name="$1" want="$2" setup="$3" main linked out code
+  main="$(mktemp -d)"; linked="$(mktemp -d)"; rm -rf "$linked"
+  (
+    cd "$main" || exit 99
+    git init -q; commit init
+    eval "$setup"
+    git worktree add -q "$linked" HEAD 2>/dev/null
+    cd "$linked"
+    out="$("$SCRIPT" 2>/dev/null)"; code=$?
+    if [ "$out" = "$want" ]; then echo "ok   - $name ($out, exit $code)"
+    else echo "FAIL - $name: want $want, got $out/$code"; exit 1; fi
+  ) || results=1
+  rm -rf "$main" "$linked"
+}
+wt_check "gerrit hook in a worktree"   gerrit         'mkdir -p .git/hooks; printf "# Change-Id\n" > .git/hooks/commit-msg'
+wt_check "graphite cfg in a worktree"  github-stacked 'touch .git/.graphite_repo_config'
+
 if [ "$results" -eq 0 ]; then echo "ALL PASS"; else echo "SOME FAILED"; fi
 exit "$results"
