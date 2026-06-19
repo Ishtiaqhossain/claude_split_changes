@@ -171,6 +171,43 @@ split:
 See `git-workflow-and-versioning` for sizing heuristics and atomic-commit discipline within
 each change.
 
+## The Split Plan (the artifact to produce)
+
+Before touching git, emit a **Split Plan** — a predictable artifact the author (or a reviewer)
+can sign off on *before* any branches exist. Always produce it in this shape:
+
+```markdown
+## Split Plan
+
+### Final goal
+<one sentence: what the whole change accomplishes>
+
+### Concerns currently mixed together
+1. <concern> — refactor | behavior
+2. ...
+
+### Proposed stack
+| # | Title | Type | Depends on | Files | Test proof | Risk |
+|---|-------|------|------------|-------|------------|------|
+| 1 | refactor: extract … seam | refactor | — | a.ts, b.ts | existing tests unchanged | low |
+| 2 | feat: add … | feature | #1 | c.ts | new unit test | med |
+
+### Parallelizable changes
+<which changes are independent (base on trunk, review in parallel) vs strictly stacked>
+
+### Land order
+<bottom-up order; what must merge before what>
+
+### PR/diff/CL description template
+Stack (land in order):
+  #1 [1/N] …   ← this change
+  #2 [2/N] …
+Base: <branch>   Depends on: <#prev or none>   Do not land before: <…>
+```
+
+Produce this first, get agreement on the *shape*, then execute the mechanics below. The plan is
+cheap to revise; a half-built stack of branches is not.
+
 ## The Refactor-First Pattern
 
 This is the pattern behind the whole skill. **When you add a feature on top of existing code,
@@ -197,6 +234,33 @@ Refactor-first: a prepared stack
 
 By the time change 4 lands, the "feature" is a tiny diff because changes 1–2 did the structural
 work in isolation, where it was easy to verify they changed nothing.
+
+## Bad Split vs Good Split
+
+A split is only useful if **every change has a thesis and a proof.** The most common mistake is
+splitting by *layer* instead of by *thesis*:
+
+**❌ Bad — split by layer.** Each piece has no independent value and nothing to prove:
+```
+PR 1: add models
+PR 2: add utils
+PR 3: add tests
+PR 4: wire everything
+```
+PRs 1–3 don't *do* anything a reviewer can evaluate or a user can use — the behavior only appears
+in PR 4. "Add tests" with nothing to test, "add models" that nothing calls: these are fragments,
+and a reviewer can't tell if PR 1 is right until PR 4 exists.
+
+**✅ Good — refactor-first, every change has a thesis + proof:**
+```
+PR 1: refactor existing report into a typed model — no behavior change (existing tests unchanged)
+PR 2: introduce a formatter seam — output byte-identical          (existing tests unchanged)
+PR 3: add a CSV formatter behind the registry, with its own tests
+PR 4: expose CSV in the CLI — end-to-end test
+```
+Each PR states one thesis and carries its proof: the refactors keep existing tests green (that's
+how you know behavior is preserved); the features ship their own tests. You can review, approve,
+and roll back any one of them on its own.
 
 ## Dependency Types & Stacking
 

@@ -1,10 +1,35 @@
-# claude_pr_skills
+# Split Changes
 
-A Claude Code skill — **[`split-changes`](split-changes/SKILL.md)** —
-plus a worked, **buildable** example of it.
+**One diff, one thesis** — a Claude Code skill that teaches coding agents to land changes like a
+**senior engineer**: small, reviewable, **stacked**, **buildable**, **testable**, and
+**refactor-first**.
 
-> **One diff, one thesis.** Each change should make exactly one argument — and that argument
-> should be buildable and testable by itself.
+> Not another AI PR *reviewer* (the web has plenty). This decomposes a large change into a stack
+> of single-thesis PRs/diffs/CLs — the way review actually scales: review latency, CI cost,
+> ownership boundaries, rollback, trunk-based development, and reviewer empathy.
+
+The skill lives in **[`split-changes/SKILL.md`](split-changes/SKILL.md)**.
+
+## In a nutshell
+
+**Input**
+> "Split this 1,000-line PR that adds CSV/JSON export, filtering, sorting, budgets, and CLI wiring."
+
+**Output** — a refactor-first stack, each change buildable and testable on its own:
+
+```
+[1/8] refactor: introduce Money and Transaction model
+[2/8] refactor: route rendering through a query pipeline
+[3/8] refactor: extract a Formatter interface
+[4/8] feat: add export formats (CSV / JSON / …)
+[5/8] feat: add filtering
+[6/8] feat: add sorting and grouping
+[7/8] feat: add budgets
+[8/8] feat: wire the CLI end-to-end
+```
+
+The three refactors land **first**, so each feature is a small diff. *(This is exactly the
+[`demo/`](demo/) example, landed as PRs #11–#19.)*
 
 ## The skill
 
@@ -24,6 +49,38 @@ change and carves it into a stack of small, single-thesis units of review. Highl
   classifies the repo and routes to the right mechanics.
 - **Built for scale.** Ownership-aligned splits, presubmit economics, feature-gating over long
   branches, right-sizing (don't over-split), and Google's small-CL / review-speed guidance.
+
+## Stack it — copy-paste recipes
+
+Once you have the [Split Plan](split-changes/SKILL.md#the-split-plan-the-artifact-to-produce),
+land it. Pick the recipe for your review system (run
+[`detect-review-system.sh`](split-changes/scripts/detect-review-system.sh) if unsure):
+
+**GitHub + a stacking tool (Graphite):**
+```sh
+gt create -m "[1/4] refactor: extract formatter seam"
+gt create -m "[2/4] refactor: introduce registry"
+gt create -m "[3/4] feat: add CSV formatter"
+gt submit        # opens/updates the whole stack of PRs
+```
+
+**Plain git + GitHub (no stacking tool):**
+```sh
+git switch -c stack/1-extract-seam main
+gh pr create --base main --title "[1/4] refactor: extract formatter seam"
+
+git switch -c stack/2-registry stack/1-extract-seam     # branch off the parent
+gh pr create --base stack/1-extract-seam --title "[2/4] refactor: introduce registry (needs #1)"
+```
+
+**Local commits, no remote yet** — reshape in place, bind to PRs later:
+```sh
+git reset --mixed main      # uncommit a big local commit
+git add <files for change 1> && git commit -m "[1/4] refactor: …"   # repeat per change
+```
+
+Sapling, Phabricator, and Gerrit recipes are in
+[the skill](split-changes/SKILL.md#stacking-in-your-review-system).
 
 ## The example: `demo/` — an expense-report tool
 
