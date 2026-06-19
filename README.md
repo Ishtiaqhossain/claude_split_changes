@@ -42,6 +42,29 @@ whole skill. The guiding principle is **one diff, one thesis**; the skill finds 
 seam separates the theses (independent features, distinct behavior changes, ownership boundaries,
 risky-vs-safe), and refactor-first is just the highest-leverage of them.
 
+**A different change, a different seam.** When nothing needs reshaping, there's no refactor to land
+first — the skill splits along another seam. Take a real one from the corpus
+([`sindresorhus/yocto-queue`](https://github.com/sindresorhus/yocto-queue)): one commit bundling two
+new queue methods.
+
+**Input**
+> "Split this commit that adds both `.peek()` and `.drain()`."
+
+**Output** — split on the *independent-behavior* seam (no refactor; each is its own thesis):
+
+```
+Before
+  main ──● one commit: add .peek() + .drain()
+
+After
+  main
+   ├─ [1/2] feat: add .peek()    (independent — base on trunk)
+   └─ [2/2] feat: add .drain()   (independent — base on trunk)
+```
+
+Neither depends on the other, so they can be reviewed in parallel — and every node still builds and
+tests on its own ([`eval/`](eval/) verifies exactly this).
+
 ## Quick start
 
 **Install** — personal Claude Code skills live in `~/.claude/skills/{skill-name}/SKILL.md`:
