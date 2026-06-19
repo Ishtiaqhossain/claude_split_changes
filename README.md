@@ -5,6 +5,8 @@ A Claude Code skill that breaks a large change into a **stack of small, single-t
 
 > **One diff, one thesis.** Land changes like a senior engineer.
 
+[![CI](https://github.com/Ishtiaqhossain/claude_stack_changes/actions/workflows/ci.yml/badge.svg)](https://github.com/Ishtiaqhossain/claude_stack_changes/actions/workflows/ci.yml)
+
 ![Claude Code producing a Split Plan from a 1,000-line PR](assets/split-plan.v3.svg)
 
 ## What it does
@@ -69,16 +71,21 @@ cp -r claude_stack_changes/stack-changes ~/.claude/skills/stack-changes
 
 ## See it in action
 
-- **Before vs. after, as real PRs** — [`demo/`](demo/):
+- **Before vs. after, as real PRs** — [`demo/`](demo/) (npm):
   [PR&nbsp;#11](https://github.com/Ishtiaqhossain/claude_stack_changes/pull/11) is a 1,019-line
   monolith; [#12–#19](https://github.com/Ishtiaqhossain/claude_stack_changes/pull/12) is the
-  refactor-first stack, each PR green on its own. Open #11, try to review it, then walk the stack.
-  ```sh
-  cd demo && npm test     # the demos are Node projects (Node 18+)
-  ```
+  refactor-first stack, each PR green on its own. Open #11, try to review it, then walk the stack
+  (`cd demo && npm test`).
 - **Break up a local commit, step by step** — [`demo-split/instruction.md`](demo-split/instruction.md):
-  a 390-line commit carved into six single-thesis commits, with steps to reproduce it yourself and
-  the captured output of running the skill.
+  a 390-line commit carved into six single-thesis commits, with steps to reproduce it + the captured
+  skill output.
+- **A second build system** — [`demo-py/`](demo-py/) (Python): the same refactor-first split in a
+  non-npm project, so the approach isn't tied to one ecosystem.
+
+**Verified, not asserted.** Every node of every demo stack is checked out and built + tested *on
+its own* — enforced in CI across both build systems via
+[`scripts/verify-stack.sh`](scripts/verify-stack.sh) (it runs the project's own command and reads
+the exit code, so it's build-system-agnostic). Evidence + checklist: [`VALIDATION.md`](VALIDATION.md).
 
 ## What this is not
 
@@ -89,7 +96,10 @@ human (or another tool) reviews them.
 ## Repository layout
 
 ```
-stack-changes/   the skill — SKILL.md + a review-system detector
-demo/            before/after example: monolith (PR #11) vs stack (#12–#19)
-demo-split/      local break-up walkthrough + the large sample change
+stack-changes/        the skill — SKILL.md + a review-system detector (fixture-tested)
+demo/                 before/after example, npm: monolith (PR #11) vs stack (#12–#19)
+demo-split/           local break-up walkthrough + the large sample change
+demo-py/              second build system: the same split in a Python project (tags py-0…py-3)
+scripts/verify-stack.sh   checks out each stack node and builds + tests it
+VALIDATION.md         what's proven (detector matrix, per-node green on npm + Python) and how
 ```
