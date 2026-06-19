@@ -6,8 +6,8 @@
 #   sapling | gerrit | phabricator | github-stacked | git-local | github-plain | unknown
 # Exit code:
 #   0  commit-per-change available (sapling/gerrit/phabricator/github-stacked/git-local)
-#   1  branch-per-PR only (github-plain) or unknown
-#   2  could not determine a working directory
+#   1  branch-per-PR only (github-plain)
+#   2  unknown / not a git or Sapling repo
 set -uo pipefail
 
 # Move to the repo root (git or Sapling); otherwise stay where we are.
@@ -26,9 +26,14 @@ detect() {
     echo phabricator; return
   fi
   # Gerrit — native commit-per-change via Change-Id relation chains.
+  # Strong signals (.gitreview, the commit-msg hook) are definitive. A bare
+  # Change-Id in recent history is weak: only trust it when there is NO GitHub
+  # remote, so a github.com repo that merely imported a Gerrit patch is not
+  # misread as Gerrit.
   if [ -f .gitreview ] \
      || grep -qs Change-Id .git/hooks/commit-msg 2>/dev/null \
-     || git log -30 --format='%B' 2>/dev/null | grep -q '^Change-Id:'; then
+     || { ! git remote -v 2>/dev/null | grep -qiE 'github\.com' \
+          && git log -30 --format='%B' 2>/dev/null | grep -q '^Change-Id:'; }; then
     echo gerrit; return
   fi
   # GitHub + a stacking tool — commit-per-change *workflow* over branch-per-PR.
@@ -54,5 +59,6 @@ mode="$(detect)"
 echo "$mode"
 case "$mode" in
   sapling|gerrit|phabricator|github-stacked|git-local) exit 0 ;;
-  *) exit 1 ;;
+  github-plain) exit 1 ;;
+  *) exit 2 ;;   # unknown / not a repo
 esac

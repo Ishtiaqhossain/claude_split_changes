@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
-# Fixture tests for detect-review-system.sh. Creates a throwaway repo per case,
-# plants the marker(s) for one review system, and asserts the detected mode and
-# exit code. Run: bash detect-review-system.test.sh
+# Fixture matrix for detect-review-system.sh. Each case creates a throwaway repo,
+# plants the marker(s) for one review system, and asserts both the printed label
+# and the exit code. Run: bash detect-review-system.test.sh
+#
+# Exit codes asserted: 0 commit-per-change · 1 branch-per-PR (github-plain) ·
+# 2 unknown / not a repo.
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SCRIPT="$HERE/detect-review-system.sh"
+GH='https://github.com/acme/app.git'
 results=0
 
 run_case() { # name  want_mode  want_exit  setup
@@ -26,13 +30,29 @@ run_case() { # name  want_mode  want_exit  setup
   rm -rf "$dir"
 }
 
-run_case "phabricator"    phabricator    0 'touch .arcconfig'
-run_case "gerrit (.gitreview)" gerrit    0 'touch .gitreview'
-run_case "github-stacked" github-stacked 0 'git config spr.branchPrefix x'
-run_case "github-plain"   github-plain   1 'git remote add origin https://github.com/x/y.git'
-run_case "git-local (local commits, no remote)" git-local 0 \
-  'git -c user.email=a@b.c -c user.name=x commit -q --allow-empty -m c'
-run_case "unknown (non-git dir)" unknown 1 'rm -rf .git'
+commit() { git -c user.email=a@b.c -c user.name=x commit -q --allow-empty -m "$1"; }
+
+# ---- the matrix ----
+run_case "sapling (.sl dir)"             sapling        0 'mkdir .sl'
+run_case "gerrit (.gitreview)"           gerrit         0 'touch .gitreview'
+run_case "gerrit (commit-msg hook)"      gerrit         0 'mkdir -p .git/hooks; printf "%s\n" "# Change-Id" > .git/hooks/commit-msg'
+run_case "phabricator (.arcconfig)"      phabricator    0 'touch .arcconfig'
+run_case "graphite (.graphite cfg)"      github-stacked 0 'touch .git/.graphite_repo_config'
+run_case "spr/ghstack (git config)"      github-stacked 0 'git config spr.branchPrefix x'
+run_case "plain github"                  github-plain   1 "git remote add origin $GH"
+run_case "git-local (no remote)"         git-local      0 'commit c1'
+run_case "not a repo (empty dir)"        unknown        2 'rm -rf .git'
+
+# ---- adversarial: where the bugs live ----
+# A github.com repo that merely imported a Gerrit patch must NOT read as gerrit.
+run_case "github + stray Change-Id"      github-plain   1 "git remote add origin $GH; commit 'port fix
+
+Change-Id: Iabc123'"
+# A Sapling repo backed by a GitHub remote must stay sapling.
+run_case "sapling on a github remote"    sapling        0 "mkdir .sl; git remote add origin $GH"
+# Documented degrade: a Graphite user without .git/.graphite_repo_config looks
+# like plain github. (Acceptable — the agent treats the output as a hint; see SKILL.md.)
+run_case "graphite w/o config (degrade)" github-plain   1 "git remote add origin $GH"
 
 if [ "$results" -eq 0 ]; then echo "ALL PASS"; else echo "SOME FAILED"; fi
 exit "$results"

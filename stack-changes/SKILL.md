@@ -342,17 +342,20 @@ classifies the current repo and tells you which path below to use:
 | `git-local` | **local commits, no remote yet** | yes — locally, until you push |
 | `github-plain` | **Plain git + GitHub** | no — branch-per-PR only |
 
-It exits `0` when commit-per-change is available, `1` for branch-per-PR. (Its fixture tests live
-beside it in `scripts/detect-review-system.test.sh`.)
+It exits `0` when commit-per-change is available, `1` for branch-per-PR (`github-plain`), and `2`
+for an unknown / non-repo dir. Its full fixture matrix — every row above plus adversarial cases —
+lives beside it in `scripts/detect-review-system.test.sh` and runs in CI on every push.
 
 **The detector is a heuristic — treat the output as a hint and override it when it's wrong.**
 Known failure modes:
-- **False `gerrit`** — it keys on `Change-Id:` trailers in the last 30 commits, so a repo that
-  merely *took a patch* from a Gerrit shop can trip it. If you don't push to `refs/for/*`, you're
-  not on Gerrit.
-- **Graphite missed** — it looks for `.git/.graphite_repo_config`; a Graphite user who hasn't
-  `gt init`-ed (fresh checkout) degrades silently to `github-plain`. If you use `gt`, treat it as
-  `github-stacked`.
+- **`gerrit` fires only on strong signals** — `.gitreview` or the commit-msg hook. A bare
+  `Change-Id:` in history counts *only when there's no GitHub remote*, so a github.com repo that
+  imported a Gerrit patch stays `github-plain` (an adversarial fixture pins this). Residual: a
+  *non-GitHub* repo with a stray Change-Id and no `.gitreview`/hook can still read as `gerrit` —
+  if you don't push to `refs/for/*`, you're not on Gerrit.
+- **Graphite needs its config** — it looks for `.git/.graphite_repo_config`; a Graphite user who
+  hasn't `gt init`-ed degrades to `github-plain` (a fixture documents this). If you use `gt`,
+  treat it as `github-stacked`.
 - **Non-GitHub remotes** (GitLab, Bitbucket, self-hosted) fall through to `git-local`/`unknown` —
   they're branch-per-PR (MRs), so use the plain-git mechanics.
 
