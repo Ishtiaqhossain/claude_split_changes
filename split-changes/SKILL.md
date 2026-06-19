@@ -235,10 +235,17 @@ classifies the current repo and tells you which path below to use:
 | `gerrit` | **Gerrit** | native |
 | `phabricator` | **Phabricator** | native |
 | `github-stacked` | **GitHub + stacking tool** | via tooling (branch-per-PR underneath) |
+| `git-local` | **local commits, no remote yet** | yes — locally, until you push |
 | `github-plain` | **Plain git + GitHub** | no — branch-per-PR only |
 
 It exits `0` when commit-per-change is available, `1` for branch-per-PR. (Its fixture tests live
 beside it in `scripts/detect-review-system.test.sh`.)
+
+**It works before any remote exists.** A `git-local` repo (commits, no remote) is the normal
+starting point. Split your **local commit stack** *now* — `git rebase -i` to split/reorder/squash
+commits, or `git reset` to uncommit and re-stage in single-thesis pieces — and bind each change
+to a PR/diff/CL when you push. The decomposition is the same work whether the review tool is
+chosen yet or not.
 
 **Detect and adapt — don't refuse.** Use the result to pick the right *plumbing*, not to gate
 the skill out of branch-per-PR repos. The decomposition principles — one diff one thesis,

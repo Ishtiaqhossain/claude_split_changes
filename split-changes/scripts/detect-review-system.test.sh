@@ -30,7 +30,9 @@ run_case "phabricator"    phabricator    0 'touch .arcconfig'
 run_case "gerrit (.gitreview)" gerrit    0 'touch .gitreview'
 run_case "github-stacked" github-stacked 0 'git config spr.branchPrefix x'
 run_case "github-plain"   github-plain   1 'git remote add origin https://github.com/x/y.git'
-run_case "unknown"        unknown        1 ':'
+run_case "git-local (local commits, no remote)" git-local 0 \
+  'git -c user.email=a@b.c -c user.name=x commit -q --allow-empty -m c'
+run_case "unknown (non-git dir)" unknown 1 'rm -rf .git'
 
 if [ "$results" -eq 0 ]; then echo "ALL PASS"; else echo "SOME FAILED"; fi
 exit "$results"

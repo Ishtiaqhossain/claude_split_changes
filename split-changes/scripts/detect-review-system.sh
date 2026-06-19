@@ -3,9 +3,9 @@
 # report whether it offers a commit-per-change workflow.
 #
 # Prints exactly one of:
-#   sapling | gerrit | phabricator | github-stacked | github-plain | unknown
+#   sapling | gerrit | phabricator | github-stacked | git-local | github-plain | unknown
 # Exit code:
-#   0  commit-per-change is available (sapling/gerrit/phabricator/github-stacked)
+#   0  commit-per-change available (sapling/gerrit/phabricator/github-stacked/git-local)
 #   1  branch-per-PR only (github-plain) or unknown
 #   2  could not determine a working directory
 set -uo pipefail
@@ -37,9 +37,15 @@ detect() {
      || [ -f .spr.yml ] || [ -f .spr.yaml ]; then
     echo github-stacked; return
   fi
-  # Plain GitHub / generic git remote — branch-per-PR only.
+  # Plain GitHub remote — branch-per-PR only.
   if git remote -v 2>/dev/null | grep -qiE 'github\.com'; then
     echo github-plain; return
+  fi
+  # Local git repo with no recognized remote yet — you still have a local commit
+  # stack to reshape (rebase/reset) and submit later. Commit-per-change locally;
+  # the remote's mechanics get chosen when you push.
+  if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo git-local; return
   fi
   echo unknown
 }
@@ -47,6 +53,6 @@ detect() {
 mode="$(detect)"
 echo "$mode"
 case "$mode" in
-  sapling|gerrit|phabricator|github-stacked) exit 0 ;;
+  sapling|gerrit|phabricator|github-stacked|git-local) exit 0 ;;
   *) exit 1 ;;
 esac
