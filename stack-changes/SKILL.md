@@ -15,20 +15,6 @@ reviewer's job is to evaluate one thesis: "does this change do what it says, cor
 can't state the thesis in a sentence, the change is carrying more than one — split it. "One
 thing" isn't a size rule; it's a *communication* rule. Size follows from it.
 
-The deepest reason to do this is **empathy for the reviewer.** A small, single-thesis change
-respects their attention: it can be reviewed in one sitting, reasoned about completely, and
-approved with confidence rather than a reflexive LGTM. A large change is hard to review well —
-reviewers skim it, approve it, and miss bugs. A sequence of single-thesis changes is the
-opposite: each one is easy to reason about, reverts cleanly, and bisects precisely. As one
-senior reviewer put it, small changes are simply *the more empathetic option*.
-
-At the scale of a large engineering org this stops being a nicety and becomes load-bearing.
-With thousands of engineers committing to a shared trunk, small single-purpose changes are
-what keep **review latency** low, **presubmit/CI cost** bounded, **rollback** surgical, and
-**bisection** tractable across an enormous history. Both Meta and Google run effectively one
-monorepo each, lean heavily on **stacked changes**, and treat *small* as a cultural default,
-not an afterthought.
-
 This skill is about decomposition: given a change that already exists (or is fully designed),
 how do you carve it into a stack where every change stands on its own and the ordering is
 obvious to a reviewer. The core move is finding the **natural seams** between theses — the lines
@@ -37,6 +23,9 @@ feature builds on existing code, is **refactor-first**: the reshaping ships *bef
 as its own changes, so the feature itself lands as a small, obvious diff. It's the most useful
 technique here — but it is a technique in service of the principle, not the principle itself. A
 change that doesn't sit on existing code splits along other seams entirely.
+
+*Why small single-thesis changes matter — empathy for the reviewer, plus review latency, CI cost,
+and clean rollback/bisection at org scale: [`reference/why.md`](reference/why.md).*
 
 ## Procedure
 
@@ -173,10 +162,6 @@ treat all of it as risky. Split, and each half becomes easy:
 - The refactor change: "tests are identical and still green → behavior is preserved."
 - The feature change: a small diff against already-prepared code → the new behavior is the whole story.
 
-This seam is so common because most work builds on existing code. But when a change doesn't —
-two independent features, a brand-new module — there's no refactor to separate out, and you split
-along one of the other seams above.
-
 ### 3. Order by dependency
 
 Sort the candidate changes so each one only depends on changes before it. Refactors that
@@ -278,12 +263,10 @@ file current as the plan changes (check off landed nodes).
 
 ## The Refactor-First Pattern
 
-The highest-leverage technique here — the one to reach for first when it applies, though not the
-whole skill. **When you add a feature on top of existing code, the first changes are pure
-refactors that reshape the existing code so the feature becomes a small diff.** When a change
-doesn't sit on existing code, there's nothing to refactor first — split along the other seams
-([Find the seams](#2-find-the-seams-refactor-vs-behavior-is-the-most-common-one)). Common, not
-universal.
+**When you add a feature on top of existing code, the first changes are pure refactors that
+reshape the existing code so the feature becomes a small diff.** (When a change doesn't sit on
+existing code, there's nothing to refactor first — split along the other
+[seams](#2-find-the-seams-refactor-vs-behavior-is-the-most-common-one).)
 
 ```
 Naive: one giant change
@@ -306,6 +289,9 @@ Refactor-first: a prepared stack
 By the time change 4 lands, the "feature" is a tiny diff because changes 1–2 did the structural
 work in isolation, where it was easy to verify they changed nothing.
 
+*(This repo's `demo/` carries this further — an expense-report change as the monolith **PR #11**
+vs an 8-PR refactor-first stack, **#12–#19**.)*
+
 ## Bad Split vs Good Split
 
 A split is only useful if **every change has a thesis and a proof.** The most common mistake is
@@ -322,16 +308,10 @@ PRs 1–3 don't *do* anything a reviewer can evaluate or a user can use — the 
 in PR 4. "Add tests" with nothing to test, "add models" that nothing calls: these are fragments,
 and a reviewer can't tell if PR 1 is right until PR 4 exists.
 
-**✅ Good — every change has a thesis + proof** (this example uses the refactor-first seam):
-```
-PR 1: refactor existing report into a typed model — no behavior change (existing tests unchanged)
-PR 2: introduce a formatter seam — output byte-identical          (existing tests unchanged)
-PR 3: add a CSV formatter behind the registry, with its own tests
-PR 4: expose CSV in the CLI — end-to-end test
-```
-Each PR states one thesis and carries its proof: the refactors keep existing tests green (that's
-how you know behavior is preserved); the features ship their own tests. You can review, approve,
-and roll back any one of them on its own.
+**✅ Good — split by thesis** (the refactor-first stack shown above): each change states one thesis
+and carries its proof — the refactors keep existing tests green (that's how you know behavior is
+preserved); the features ship their own tests. You can review, approve, and roll back any one on
+its own.
 
 ## Dependency Types & Stacking
 
@@ -504,8 +484,6 @@ skimming a review queue where this change sits and what it needs first.
 ```
 [1/4] refactor: extract Report core into a seam
 [2/4] refactor: introduce Formatter registry (needs #1)
-[3/4] feat: add CsvFormatter behind a flag (needs #2)
-[4/4] feat: enable CSV export + UI (needs #3)
 ```
 
 **Description template** (put this in every change in the stack so any entry point is self-explanatory):
@@ -533,24 +511,6 @@ presubmit economics, ownership-aligned splits, feature-gating over long branches
 for land queues, and the **LSC/codemod escape hatch** for repo-wide sweeps (don't hand-split a
 3,000-file rename — generate it). Full notes: [`reference/at-scale.md`](reference/at-scale.md).
 
-## Worked Example
-
-A single 900-line change — "add CSV export to Reports" — carved into a reviewable stack
-(shown here as GitHub PRs; the same stack is a diff stack in Phabricator/Sapling or a relation
-chain in Gerrit):
-
-| Change | Base | Title | What its test proves |
-|----|------|-------|----------------------|
-| 1 | trunk | `[1/4] refactor: extract Report core into a seam` | Existing report tests pass **unchanged** → behavior preserved |
-| 2 | 1 | `[2/4] refactor: introduce Formatter registry (needs #1)` | Existing formatter output is byte-identical through the registry |
-| 3 | 2 | `[3/4] feat: add CsvFormatter behind a flag (needs #2)` | New unit tests: CsvFormatter emits correct CSV; flag off = no change |
-| 4 | 3 | `[4/4] feat: enable CSV export + UI (needs #3)` | Integration test: user passes `--csv` → valid CSV |
-
-Each change builds and is green on its own. A reviewer approves four ~200-line changes they
-fully understand instead of rubber-stamping one 900-line diff. *(This repo's `demo/` carries the
-same idea further — an expense-report change landed as the monolith **PR #11** vs an 8-PR
-refactor-first stack, **#12–#19**.)*
-
 ## Common Rationalizations
 
 Rebuttals to "it's fine as one big change," "smaller is always better," "atomic commits = atomic
@@ -559,20 +519,16 @@ review," "I'll split after approval," and the rest:
 
 ## Red Flags
 
-- A change title needs the word "and" to be accurate
-- A change doesn't build, or doesn't pass presubmit, without an unlanded sibling
-- One change mixes a refactor with a behavior change
+Symptoms a split (or non-split) has gone wrong — beyond what the
+[One-Thing Rule](#the-one-thing-rule-one-diff-one-thesis) and [Verification](#verification)
+already cover:
+
 - One big PR justified by "the commits are clean" — tidy commits, but the reviewable diff is still huge
-- A change whose thesis can't be stated in one sentence without "and"
-- A change adds behavior but ships no test for it
 - A stack so deep the bottom never lands and the top rots (or the land queue never drains it)
-- A change with no independent motivation or test — it exists only as setup for the next one
-- A single cohesive concern split across several changes just to hit a line-count target
-- A reviewer must read change 7 to understand why change 1 exists
+- A reviewer must read change 7 to understand why change 1 exists, or has to ask "where do I start?"
 - One change sprawls across many OWNERS, blocking on the slowest approver
 - Hand-splitting what should be a codemod / LSC
 - The dependency lives only in your head — not in any title, description, or stack graph
-- A reviewer has to ask "which change do I start with?"
 
 ## Verify the Stack (per-revision)
 
@@ -605,14 +561,13 @@ the proof it preserved behavior.
 
 ## Verification
 
-Before submitting the stack, confirm for **every** change:
+Before submitting, confirm every change passes the
+[One-Thing Rule acceptance tests](#the-one-thing-rule-one-diff-one-thesis) (statable in one
+sentence, understandable / buildable / testable / revertable alone, not a fragment) — and, at the
+stack level:
 
-- [ ] It does exactly one thing (title needs no "and") — but is not a fragment: its motivation stands without referencing a later change
-- [ ] It builds on its own revision
-- [ ] It ships its own tests and the suite is green at its revision
+- [ ] No change mixes a refactor with a behavior change; refactor changes leave existing tests unchanged and passing
 - [ ] It passes presubmit/CI independently, at its position in the stack
-- [ ] No change mixes a refactor with a behavior change
-- [ ] Refactor changes leave existing tests unchanged and passing
 - [ ] Title states stack position `[n/total]` and any prerequisite `(needs …)`
 - [ ] Description lists the full stack order and base
 - [ ] The stack relationship is tracked by the tool (or bases set correctly in the fallback path)
