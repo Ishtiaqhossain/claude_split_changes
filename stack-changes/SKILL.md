@@ -31,9 +31,12 @@ not an afterthought.
 
 This skill is about decomposition: given a change that already exists (or is fully designed),
 how do you carve it into a stack where every change stands on its own and the ordering is
-obvious to a reviewer. The single most important move is **refactor-first** — when a feature
-needs existing code reshaped, the reshaping ships *before* the feature, as its own changes, so
-the feature itself lands as a small, obvious diff.
+obvious to a reviewer. The core move is finding the **natural seams** between theses — the lines
+along which one change honestly becomes two. The most common and highest-leverage seam, when a
+feature builds on existing code, is **refactor-first**: the reshaping ships *before* the feature,
+as its own changes, so the feature itself lands as a small, obvious diff. It's the most useful
+technique here — but it is a technique in service of the principle, not the principle itself. A
+change that doesn't sit on existing code splits along other seams entirely.
 
 ## Procedure
 
@@ -135,8 +138,8 @@ A large change is not an instruction to produce many PRs — it's an instruction
 
 ```
 1. Map the end state          →  what does the final diff actually touch?
-2. Separate refactor/behavior →  pure refactors first, behavior changes after
-3. Order by dependency        →  topological sort: what must land before what
+2. Find the seams             →  split by thesis; refactor-vs-behavior is the most common seam
+3. Order by dependency        →  topological sort: what must land before what (refactors first)
 4. Size & scope each change   →  ~200–400 lines; one owner set; small blast radius
 ```
 
@@ -145,10 +148,23 @@ A large change is not an instruction to produce many PRs — it's an instruction
 List every file the finished change touches and *why* each is touched. Group the "whys" —
 each distinct why is a candidate change.
 
-### 2. Separate refactors from behavior changes (the load-bearing step)
+### 2. Find the seams (refactor vs behavior is the most common one)
 
-A **pure refactor** changes structure but not behavior: existing tests pass *unchanged*. A
-**behavior change** adds or alters what the code does: it comes with new or modified tests.
+A seam is a line along which one change honestly becomes two. Look for these, in rough order of
+how often they pay off:
+
+- **Refactor vs behavior** — the most common and highest-leverage seam (detailed below).
+- **Independent feature vs independent feature** — two things that don't depend on each other
+  base on trunk and review in parallel; don't stack what isn't dependent.
+- **Behavior change vs behavior change** — two distinct behaviors are two theses, even if they
+  touch the same file.
+- **Ownership boundary** — a change spanning several OWNERS/CODEOWNERS sets splits so each piece
+  has one coherent owner set (see step 4).
+- **Risky vs safe** — isolate the risky, hard-to-review part so the rest lands trivially.
+
+**The refactor/behavior seam.** A **pure refactor** changes structure but not behavior: existing
+tests pass *unchanged*. A **behavior change** adds or alters what the code does: it comes with new
+or modified tests.
 
 Never mix them in one change. A reviewer reading a mixed change can't tell which diff lines are
 "safe restructuring" and which lines actually change what the system does — so they have to
@@ -156,6 +172,10 @@ treat all of it as risky. Split, and each half becomes easy:
 
 - The refactor change: "tests are identical and still green → behavior is preserved."
 - The feature change: a small diff against already-prepared code → the new behavior is the whole story.
+
+This seam is so common because most work builds on existing code. But when a change doesn't —
+two independent features, a brand-new module — there's no refactor to separate out, and you split
+along one of the other seams above.
 
 ### 3. Order by dependency
 
@@ -258,9 +278,12 @@ file current as the plan changes (check off landed nodes).
 
 ## The Refactor-First Pattern
 
-This is the pattern behind the whole skill. **When you add a feature on top of existing code,
-the first changes are pure refactors that reshape the existing code so the feature becomes a
-small diff.**
+The highest-leverage technique here — the one to reach for first when it applies, though not the
+whole skill. **When you add a feature on top of existing code, the first changes are pure
+refactors that reshape the existing code so the feature becomes a small diff.** When a change
+doesn't sit on existing code, there's nothing to refactor first — split along the other seams
+([Find the seams](#2-find-the-seams-refactor-vs-behavior-is-the-most-common-one)). Common, not
+universal.
 
 ```
 Naive: one giant change
@@ -299,7 +322,7 @@ PRs 1–3 don't *do* anything a reviewer can evaluate or a user can use — the 
 in PR 4. "Add tests" with nothing to test, "add models" that nothing calls: these are fragments,
 and a reviewer can't tell if PR 1 is right until PR 4 exists.
 
-**✅ Good — refactor-first, every change has a thesis + proof:**
+**✅ Good — every change has a thesis + proof** (this example uses the refactor-first seam):
 ```
 PR 1: refactor existing report into a typed model — no behavior change (existing tests unchanged)
 PR 2: introduce a formatter seam — output byte-identical          (existing tests unchanged)
