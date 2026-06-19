@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="722" viewBox="0 0 980 722" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">
+<rect width="980" height="722" rx="10" fill="#0d1117"/>
+<rect width="980" height="34" rx="10" fill="#161b22"/><rect y="24" width="980" height="10" fill="#161b22"/>
+<circle cx="20" cy="17" r="6" fill="#ff5f56"/><circle cx="40" cy="17" r="6" fill="#ffbd2e"/><circle cx="60" cy="17" r="6" fill="#27c93f"/>
+<text x="490" y="21" fill="#8b949e" text-anchor="middle" font-size="12">Claude Code — stack-changes</text>
+<text x="20" y="50" fill="#8b949e" text-anchor="start">~/reports ❯ </text>
+<text x="106" y="50" fill="#79c0ff" text-anchor="start">/stack-changes create a Split Plan for my 1,000-line PR</text>
+<text x="20" y="88" fill="#3fb950" font-weight="bold" text-anchor="start">## Split Plan</text>
+<text x="20" y="124" fill="#e6edf3" font-weight="bold" text-anchor="start">### Final goal</text>
+<text x="20" y="146" fill="#c9d1d9" text-anchor="start">Add CSV/JSON export, filtering, sorting, budgets, and CLI wiring to Reports.</text>
+<text x="20" y="182" fill="#e6edf3" font-weight="bold" text-anchor="start">### Concerns currently mixed together</text>
+<text x="20" y="204" fill="#c9d1d9" text-anchor="start">3 refactors (model, pipeline, formatter) + 5 features in one 1,019-line diff</text>
+<text x="20" y="240" fill="#e6edf3" font-weight="bold" text-anchor="start">### Proposed stack</text>
+<line x1="20" y1="256" x2="960" y2="256" stroke="#30363d"/>
+<line x1="20" y1="286" x2="960" y2="286" stroke="#30363d"/>
+<line x1="20" y1="316" x2="960" y2="316" stroke="#30363d"/>
+<line x1="20" y1="346" x2="960" y2="346" stroke="#30363d"/>
+<line x1="20" y1="376" x2="960" y2="376" stroke="#30363d"/>
+<line x1="20" y1="406" x2="960" y2="406" stroke="#30363d"/>
+<line x1="20" y1="436" x2="960" y2="436" stroke="#30363d"/>
+<line x1="20" y1="466" x2="960" y2="466" stroke="#30363d"/>
+<line x1="20" y1="496" x2="960" y2="496" stroke="#30363d"/>
+<line x1="20" y1="526" x2="960" y2="526" stroke="#30363d"/>
+<line x1="20" y1="256" x2="20" y2="526" stroke="#30363d"/>
+<line x1="60" y1="256" x2="60" y2="526" stroke="#30363d"/>
+<line x1="352" y1="256" x2="352" y2="526" stroke="#30363d"/>
+<line x1="444" y1="256" x2="444" y2="526" stroke="#30363d"/>
+<line x1="556" y1="256" x2="556" y2="526" stroke="#30363d"/>
+<line x1="706" y1="256" x2="706" y2="526" stroke="#30363d"/>
+<line x1="902" y1="256" x2="902" y2="526" stroke="#30363d"/>
+<line x1="960" y1="256" x2="960" y2="526" stroke="#30363d"/>
+<text x="28" y="276" fill="#8b949e" font-weight="bold" text-anchor="start">#</text>
+<text x="68" y="276" fill="#8b949e" font-weight="bold" text-anchor="start">Title</text>
+<text x="360" y="276" fill="#8b949e" font-weight="bold" text-anchor="start">Type</text>
+<text x="452" y="276" fill="#8b949e" font-weight="bold" text-anchor="start">Depends on</text>
+<text x="564" y="276" fill="#8b949e" font-weight="bold" text-anchor="start">Files</text>
+<text x="714" y="276" fill="#8b949e" font-weight="bold" text-anchor="start">Test proof</text>
+<text x="910" y="276" fill="#8b949e" font-weight="bold" text-anchor="start">Risk</text>
+<text x="28" y="306" fill="#8b949e" text-anchor="start">1</text>
+<text x="68" y="306" fill="#7ee787" text-anchor="start">refactor: typed Money/Txn model</text>
+<text x="360" y="306" fill="#7ee787" text-anchor="start">refactor</text>
+<text x="452" y="306" fill="#c9d1d9" text-anchor="start">—</text>
+<text x="564" y="306" fill="#c9d1d9" text-anchor="start">money/txn.js</text>
+<text x="714" y="306" fill="#c9d1d9" text-anchor="start">tests unchanged</text>
+<text x="910" y="306" fill="#c9d1d9" text-anchor="start">low</text>
+<text x="28" y="336" fill="#8b949e" text-anchor="start">2</text>
+<text x="68" y="336" fill="#7ee787" text-anchor="start">refactor: query pipeline seam</text>
+<text x="360" y="336" fill="#7ee787" text-anchor="start">refactor</text>
+<text x="452" y="336" fill="#c9d1d9" text-anchor="start">#1</text>
+<text x="564" y="336" fill="#c9d1d9" text-anchor="start">query.js</text>
+<text x="714" y="336" fill="#c9d1d9" text-anchor="start">tests unchanged</text>
+<text x="910" y="336" fill="#c9d1d9" text-anchor="start">low</text>
+<text x="28" y="366" fill="#8b949e" text-anchor="start">3</text>
+<text x="68" y="366" fill="#7ee787" text-anchor="start">refactor: Formatter interface</text>
+<text x="360" y="366" fill="#7ee787" text-anchor="start">refactor</text>
+<text x="452" y="366" fill="#c9d1d9" text-anchor="start">#2</text>
+<text x="564" y="366" fill="#c9d1d9" text-anchor="start">formatter.js</text>
+<text x="714" y="366" fill="#c9d1d9" text-anchor="start">tests unchanged</text>
+<text x="910" y="366" fill="#c9d1d9" text-anchor="start">low</text>
+<text x="28" y="396" fill="#8b949e" text-anchor="start">4</text>
+<text x="68" y="396" fill="#79c0ff" text-anchor="start">feat: add export formats</text>
+<text x="360" y="396" fill="#79c0ff" text-anchor="start">feature</text>
+<text x="452" y="396" fill="#c9d1d9" text-anchor="start">#3</text>
+<text x="564" y="396" fill="#c9d1d9" text-anchor="start">formatters/*</text>
+<text x="714" y="396" fill="#c9d1d9" text-anchor="start">format tests</text>
+<text x="910" y="396" fill="#c9d1d9" text-anchor="start">low</text>
+<text x="28" y="426" fill="#8b949e" text-anchor="start">5</text>
+<text x="68" y="426" fill="#79c0ff" text-anchor="start">feat: add filtering</text>
+<text x="360" y="426" fill="#79c0ff" text-anchor="start">feature</text>
+<text x="452" y="426" fill="#c9d1d9" text-anchor="start">#4</text>
+<text x="564" y="426" fill="#c9d1d9" text-anchor="start">query.js</text>
+<text x="714" y="426" fill="#c9d1d9" text-anchor="start">filter tests</text>
+<text x="910" y="426" fill="#c9d1d9" text-anchor="start">low</text>
+<text x="28" y="456" fill="#8b949e" text-anchor="start">6</text>
+<text x="68" y="456" fill="#79c0ff" text-anchor="start">feat: add sorting + grouping</text>
+<text x="360" y="456" fill="#79c0ff" text-anchor="start">feature</text>
+<text x="452" y="456" fill="#c9d1d9" text-anchor="start">#5</text>
+<text x="564" y="456" fill="#c9d1d9" text-anchor="start">query.js</text>
+<text x="714" y="456" fill="#c9d1d9" text-anchor="start">sort tests</text>
+<text x="910" y="456" fill="#c9d1d9" text-anchor="start">low</text>
+<text x="28" y="486" fill="#8b949e" text-anchor="start">7</text>
+<text x="68" y="486" fill="#79c0ff" text-anchor="start">feat: add budgets</text>
+<text x="360" y="486" fill="#79c0ff" text-anchor="start">feature</text>
+<text x="452" y="486" fill="#c9d1d9" text-anchor="start">#6</text>
+<text x="564" y="486" fill="#c9d1d9" text-anchor="start">budgets.js</text>
+<text x="714" y="486" fill="#c9d1d9" text-anchor="start">budget tests</text>
+<text x="910" y="486" fill="#c9d1d9" text-anchor="start">low</text>
+<text x="28" y="516" fill="#8b949e" text-anchor="start">8</text>
+<text x="68" y="516" fill="#79c0ff" text-anchor="start">feat: wire the CLI end-to-end</text>
+<text x="360" y="516" fill="#79c0ff" text-anchor="start">feature</text>
+<text x="452" y="516" fill="#c9d1d9" text-anchor="start">#7</text>
+<text x="564" y="516" fill="#c9d1d9" text-anchor="start">index.js +</text>
+<text x="714" y="516" fill="#c9d1d9" text-anchor="start">e2e CLI test</text>
+<text x="910" y="516" fill="#c9d1d9" text-anchor="start">med</text>
+<text x="20" y="560" fill="#e6edf3" font-weight="bold" text-anchor="start">### Parallelizable changes</text>
+<text x="20" y="582" fill="#c9d1d9" text-anchor="start">Mostly stacked; #5 (filtering) and #6 (sorting) are independent of each other.</text>
+<text x="20" y="618" fill="#e6edf3" font-weight="bold" text-anchor="start">### Land order</text>
+<text x="20" y="640" fill="#c9d1d9" text-anchor="start">bottom-up: #1 → #2 → … → #8   (refactors first)</text>
+<text x="20" y="676" fill="#e6edf3" font-weight="bold" text-anchor="start">### PR/diff/CL description template</text>
+<text x="20" y="698" fill="#c9d1d9" text-anchor="start">Stack (land in order): #1 [1/8] … #8 [8/8]   ·   Base: trunk   ·   Depends on: prev</text>
+</svg>
