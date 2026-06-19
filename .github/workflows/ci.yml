@@ -7,24 +7,49 @@ on:
 
 jobs:
   detector:
-    name: review-system detector tests
+    name: review-system detector matrix
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: fixture tests
+      - name: fixture matrix (incl. adversarial)
         run: bash stack-changes/scripts/detect-review-system.test.sh
 
   demos:
-    name: demo test suites
+    name: demo suites (final state)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      # On a stack PR branch, `demo/` holds that change's state, so this run
-      # verifies the change builds + tests on its own (the skill's core claim).
-      - name: demo (expense-report)
+      - name: demo (expense-report, npm)
         run: cd demo && npm run build && npm test
-      - name: demo-split (unit-convert)
+      - name: demo-split (unit-convert, npm)
         run: cd demo-split/unit-convert && npm run build && npm test
+      - name: demo-py (report, python)
+        run: cd demo-py && python3 -m py_compile *.py && python3 -m unittest
+
+  verify-stack:
+    name: per-revision stack verification (npm + python)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # need all branches + tags to walk the stacks
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: fetch all branches + tags
+        run: git fetch --quiet origin '+refs/heads/*:refs/remotes/origin/*' --tags
+      - name: walk each stack node — checkout, build, test, read exit code
+        run: |
+          # Copy the verifier out of the work tree so branch checkouts can't remove it mid-run.
+          cp scripts/verify-stack.sh "$RUNNER_TEMP/vs.sh"
+          echo "== npm stack (demo/) =="
+          bash "$RUNNER_TEMP/vs.sh" "cd demo && npm run build && npm test" \
+            expense-stack/1-model expense-stack/2-query-pipeline expense-stack/3-formatter-seam \
+            expense-stack/4-formatters expense-stack/5-filtering expense-stack/6-sort-group \
+            expense-stack/7-budgets expense-stack/8-cli
+          echo "== python stack (demo-py/) =="
+          bash "$RUNNER_TEMP/vs.sh" "cd demo-py && python3 -m py_compile *.py && python3 -m unittest" \
+            py-0 py-1 py-2 py-3
