@@ -7,7 +7,7 @@ A Claude Code skill that breaks a large change into a **stack of small, single-t
 
 [![CI](https://github.com/Ishtiaqhossain/claude_stack_changes/actions/workflows/ci.yml/badge.svg)](https://github.com/Ishtiaqhossain/claude_stack_changes/actions/workflows/ci.yml)
 
-![Claude Code producing a Split Plan from a 1,000-line PR](assets/split-plan.v3.svg)
+![Claude Code surveying a 1,000-line PR, choosing a seam, and producing a refactor-first Split Plan](assets/split-plan.v4.svg)
 
 ## What it does
 
