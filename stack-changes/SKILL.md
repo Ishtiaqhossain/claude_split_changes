@@ -238,8 +238,9 @@ Base: <branch>   Depends on: <#prev or none>   Do not land before: <…>
 Produce this first, get agreement on the *shape*, then execute the mechanics below. The plan is
 cheap to revise; a half-built stack of branches is not.
 
-**Persist it — one on-disk source of truth.** Write the plan to `STACK_PLAN.md` at the repo root
-(gitignore it; it's working state). For a deep stack worked across more than one session this is
+**Persist it — one on-disk source of truth.** Write the plan to `STACK_PLAN.md` at the repo root,
+and **add `STACK_PLAN.md` to `.gitignore` yourself** (it's working state — don't leave an
+uncommitted artifact behind). For a deep stack worked across more than one session this is
 the anchor: on **resume**, read `STACK_PLAN.md`, re-run the
 [per-revision loop](#verify-the-stack-per-revision) to find the first unbuilt/red node, and
 continue from there — instead of re-deriving the plan from scratch and risking drift. Keep the
@@ -295,7 +296,7 @@ classifies the current repo and tells you which path below to use:
 | `phabricator` | **Phabricator** | native |
 | `github-stacked` | **GitHub + stacking tool** | via tooling (branch-per-PR underneath) |
 | `git-local` | **local commits, no remote yet** | yes — locally, until you push |
-| `github-plain` | **Plain git + GitHub** | no — branch-per-PR only |
+| `github-plain` | **Plain branch-per-PR** (GitHub PRs, GitLab/Bitbucket MRs) | no — branch-per-PR only |
 
 It exits `0` when commit-per-change is available, `1` for branch-per-PR (`github-plain`), and `2`
 for an unknown / non-repo dir. Its full fixture matrix — every row above plus adversarial cases —
@@ -311,8 +312,10 @@ Known failure modes:
 - **Graphite needs its config** — it looks for `.git/.graphite_repo_config`; a Graphite user who
   hasn't `gt init`-ed degrades to `github-plain` (a fixture documents this). If you use `gt`,
   treat it as `github-stacked`.
-- **Non-GitHub remotes** (GitLab, Bitbucket, self-hosted) fall through to `git-local`/`unknown` —
-  they're branch-per-PR (MRs), so use the plain-git mechanics.
+- **GitLab / Bitbucket** remotes now route to `github-plain` — they're MR-based branch-per-PR, so
+  the plain-branch mechanics apply. **Self-hosted** MR hosts (self-hosted GitLab, Gitea, …) we can't
+  fingerprint still fall through to `git-local`; treat them as branch-per-PR too, not as a
+  commit-per-change system.
 
 **If you can't run the script**, don't guess — ask the user three questions:
 1. Where do code reviews happen — GitHub PRs, Phabricator/Sapling diffs, Gerrit CLs, or just
@@ -337,6 +340,13 @@ everywhere; only the stacking commands change.
 **Principle: let the tool track the stack; you choose the decomposition.** Modern review
 systems make stacked changes first-class and auto-retarget descendants for you — the manual
 rebase dance below is only needed when you have no stacking tool.
+
+> **Strongly prefer a stacking tool (or a native commit-per-change system) over the manual path.**
+> The plain-git `git rebase --onto` fallback is the **riskiest thing this skill does** — a wrong
+> base silently corrupts the stack, and an agent driving it can't always see the corruption. Use it
+> only as a last resort; rebase one branch at a time, and **re-run the [per-revision verify
+> loop](#verify-the-stack-per-revision) after each rebase** so a bad base fails loudly instead of
+> rotting the stack.
 
 > **⚠ Safety — history rewrite & force-push.** Several mechanics below run `git rebase` / `git reset`
 > (which rewrite history) and `git push --force-with-lease`. **Confirm with the user before
@@ -397,8 +407,8 @@ gt submit                                  # opens/updates the whole stack of PR
 ```
 On merge of the bottom PR, the tool retargets the next onto trunk automatically.
 
-### Plain git + GitHub (fallback — only if you have no stacking tool)
-Manage bases and rebases by hand:
+### Plain git + GitHub (fallback — last resort, no stacking tool; the riskiest path)
+Manage bases and rebases by hand — verify after every rebase (see the warning above):
 
 ```sh
 git switch -c stack/1-seam main

@@ -6,7 +6,7 @@
 #   sapling | gerrit | phabricator | github-stacked | git-local | github-plain | unknown
 # Exit code:
 #   0  commit-per-change available (sapling/gerrit/phabricator/github-stacked/git-local)
-#   1  branch-per-PR only (github-plain)
+#   1  branch-per-PR only (github-plain — GitHub PRs or GitLab/Bitbucket MRs)
 #   2  unknown / not a git or Sapling repo
 set -uo pipefail
 
@@ -32,7 +32,7 @@ detect() {
   # misread as Gerrit.
   if [ -f .gitreview ] \
      || grep -qs Change-Id .git/hooks/commit-msg 2>/dev/null \
-     || { ! git remote -v 2>/dev/null | grep -qiE 'github\.com' \
+     || { ! git remote -v 2>/dev/null | grep -qiE 'github\.com|gitlab\.com|bitbucket\.org' \
           && git log -30 --format='%B' 2>/dev/null | grep -q '^Change-Id:'; }; then
     echo gerrit; return
   fi
@@ -42,13 +42,17 @@ detect() {
      || [ -f .spr.yml ] || [ -f .spr.yaml ]; then
     echo github-stacked; return
   fi
-  # Plain GitHub remote — branch-per-PR only.
-  if git remote -v 2>/dev/null | grep -qiE 'github\.com'; then
+  # Plain branch-per-PR host — GitHub PRs, or GitLab/Bitbucket merge requests. No
+  # commit-per-change; you manage one branch + PR/MR per change. (`github-plain` names
+  # this mechanics bucket, not a claim that the host is GitHub.)
+  if git remote -v 2>/dev/null | grep -qiE 'github\.com|gitlab\.com|bitbucket\.org'; then
     echo github-plain; return
   fi
-  # Local git repo with no recognized remote yet — you still have a local commit
-  # stack to reshape (rebase/reset) and submit later. Commit-per-change locally;
-  # the remote's mechanics get chosen when you push.
+  # Local git repo with no recognized remote yet (or a self-hosted host we can't
+  # classify — e.g. self-hosted GitLab/Gitea) — you still have a local commit stack to
+  # reshape (rebase/reset) and submit later. Commit-per-change locally; the remote's
+  # mechanics get chosen when you push. If it's a self-hosted MR host, treat it as
+  # branch-per-PR (use the plain-branch mechanics).
   if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     echo git-local; return
   fi

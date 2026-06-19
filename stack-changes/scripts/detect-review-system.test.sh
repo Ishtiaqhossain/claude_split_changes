@@ -53,6 +53,13 @@ run_case "sapling on a github remote"    sapling        0 "mkdir .sl; git remote
 # Documented degrade: a Graphite user without .git/.graphite_repo_config looks
 # like plain github. (Acceptable — the agent treats the output as a hint; see SKILL.md.)
 run_case "graphite w/o config (degrade)" github-plain   1 "git remote add origin $GH"
+# GitLab/Bitbucket with a remote are MR-based branch-per-PR — NOT a local-only stack.
+run_case "gitlab remote"                 github-plain   1 "git remote add origin https://gitlab.com/acme/app.git"
+run_case "bitbucket remote"              github-plain   1 "git remote add origin git@bitbucket.org:acme/app.git"
+# A GitLab repo with a stray Change-Id must not read as gerrit either.
+run_case "gitlab + stray Change-Id"      github-plain   1 "git remote add origin https://gitlab.com/acme/app.git; commit 'x
+
+Change-Id: Iabc'"
 
 if [ "$results" -eq 0 ]; then echo "ALL PASS"; else echo "SOME FAILED"; fi
 exit "$results"

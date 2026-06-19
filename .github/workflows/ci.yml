@@ -6,6 +6,16 @@ on:
   pull_request:
 
 jobs:
+  shellcheck:
+    name: shellcheck (all shell scripts)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # The detector + verify/regen/corpus scripts are trustworthy plumbing — lint them.
+      # --severity=warning catches real bugs (pipelines, quoting) without info/style noise.
+      - name: lint
+        run: shellcheck --severity=warning $(git ls-files '*.sh')
+
   detector:
     name: review-system detector matrix
     runs-on: ubuntu-latest
