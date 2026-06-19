@@ -1,0 +1,10 @@
+{
+  "name": "unit-convert",
+  "version": "1.0.0",
+  "description": "A small unit-conversion CLI (length, mass, temperature, time, data, area, volume)",
+  "type": "module",
+  "scripts": {
+    "build": "node --check src/index.js && node src/index.js 1 m to cm > /dev/null && echo build ok",
+    "test": "node --test"
+  }
+}
