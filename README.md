@@ -1,6 +1,6 @@
 # claude_pr_skills
 
-A Claude Code skill — **[`splitting-changes-into-prs`](splitting-changes-into-prs/SKILL.md)** —
+A Claude Code skill — **[`split-changes`](split-changes/SKILL.md)** —
 plus a worked, **buildable** example of it.
 
 > **One diff, one thesis.** Each change should make exactly one argument — and that argument
@@ -8,7 +8,7 @@ plus a worked, **buildable** example of it.
 
 ## The skill
 
-[`splitting-changes-into-prs/SKILL.md`](splitting-changes-into-prs/SKILL.md) takes a large
+[`split-changes/SKILL.md`](split-changes/SKILL.md) takes a large
 change and carves it into a stack of small, single-thesis units of review. Highlights:
 
 - **One diff, one thesis.** A change is an argument with one topic sentence; the reviewer
@@ -20,7 +20,7 @@ change and carves it into a stack of small, single-thesis units of review. Highl
   *reviewable unit* into a **stack** — a clean commit history inside one big PR isn't enough.
 - **Tool-agnostic.** Neutral terms (a "change") with mappings for GitHub PRs, Sapling/
   Phabricator diffs, and Gerrit CLs — plus the native stacking workflow for each. A bundled
-  [`detect-review-system.sh`](splitting-changes-into-prs/scripts/detect-review-system.sh)
+  [`detect-review-system.sh`](split-changes/scripts/detect-review-system.sh)
   classifies the repo and routes to the right mechanics.
 - **Built for scale.** Ownership-aligned splits, presubmit economics, feature-gating over long
   branches, right-sizing (don't over-split), and Google's small-CL / review-speed guidance.
@@ -68,6 +68,6 @@ then do the features land, each a small diff against the prepared seams.
 ## Repository layout
 
 ```
-splitting-changes-into-prs/SKILL.md   the skill
-demo/                                  the expense-report example (base on main)
+split-changes/SKILL.md   the skill
+demo/                    the expense-report example (base on main)
 ```
