@@ -9,7 +9,7 @@ expert review framework.
 | Item | Status | Evidence |
 |------|--------|----------|
 | Layer 1 — detector fixture matrix (incl. adversarial) passes in CI | ✅ | [`stack-changes/scripts/detect-review-system.test.sh`](stack-changes/scripts/detect-review-system.test.sh) — 12 cases; CI job `detector`. |
-| Layer 2 — decomposition reasoning proven on an *independent* corpus | ◔ **open — weakest link** | Only **2** stacks, **both author-built** → tests the design, not generalization. Topological validity *is* observed (verify-stack green per node); independence + breadth are not. Rubric + corpus plan below. |
+| Layer 2 — decomposition reasoning proven on an *independent* corpus | ◑ **started** | Harness ([`eval/`](eval/)) + **1 independent, build-verified** split (yocto-queue — real external code, objective topo check green). Still an *easy* case; hard cases + breadth (Go/Cargo/Gradle/Django) remain open. Rubric + corpus log below. |
 | Layer 3 — per-revision build/test loop in the skill, demonstrated green on 2+ build systems | ✅ | Skill section "Verify the Stack"; [`scripts/verify-stack.sh`](scripts/verify-stack.sh); transcript below; CI job `verify-stack`. |
 | README install commands work as written | ✅ | Clone URL → HTTP 200; repo name `claude_stack_changes`; demo PRs #11–#19 resolve. |
 | Detector failure modes + no-script fallback documented | ✅ | `SKILL.md` → "Detecting Your Review System". |
@@ -68,3 +68,22 @@ produce a Split Plan → run `verify-stack.sh` over it (objective topo check) �
 Run **3× per repo** and record a per-repo pass rate. *Stable-and-reasonable* is the bar;
 *occasionally-wild* means the skill text needs tightening. This is an ongoing eval program, not a
 one-shot — and it is the single biggest remaining gap between "works here" and "works on your repo."
+
+### Corpus log (independent — not author-built)
+| # | Repo | Bundled change → split | Build sys | Topo valid (objective) | Notes |
+|---|------|------------------------|-----------|------------------------|-------|
+| 1 | [`sindresorhus/yocto-queue`](https://github.com/sindresorhus/yocto-queue) | `.peek()` + `.drain()` → 2 nodes | npm / ava | ✅ `verify-stack` green (2/2) | Real external code. **Easy case** — two independent features, trivial topology, no refactor. Rubric: topo ✅ · separation n/a · no-over-split ✅ · test-proof ✅ · mechanics ✅ (github→branch-per-PR). |
+
+Reproduce #1:
+```sh
+git clone https://github.com/sindresorhus/yocto-queue yq && cd yq && npm install
+base=$(git rev-parse 5bf850c^)                       # before .peek()/.drain()
+git checkout -B split "$base"
+git cherry-pick --no-edit 5bf850c && git tag yq-1-peek   # [1/2] add .peek()
+git cherry-pick --no-edit d631ea8 && git tag yq-2-drain  # [2/2] add .drain()
+<this-repo>/eval/run-eval.sh "$PWD" "npx ava" yq-1-peek yq-2-drain
+```
+
+**Honest status:** this is **one easy, independent, build-verified** data point — real progress
+past the author-built demos, but not yet the *hard* cases (genuine refactor+feature with
+non-trivial topology) or the *breadth* (Go/Cargo/Gradle/Django, run 3×). Those remain the open work.
