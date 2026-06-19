@@ -33,6 +33,11 @@ teardown() {
     echo; echo "DRY RUN — nothing changed. Re-run with --yes to close the PRs + delete the branches."
     return 0
   fi
+  # Record the outgoing tips so `finish` can prove the next stack is a FRESH skill
+  # run, not these same commits re-pushed under new numbers (the clone shortcut).
+  mkdir -p validation/.regen
+  stack_branches | while read -r b; do git rev-parse "$b"; done > validation/.regen/prev-shas
+  echo "recorded $(wc -l < validation/.regen/prev-shas | tr -d ' ') outgoing tip SHAs (clone guard)"
   for n in $(stack_prs); do gh pr close "$n" --repo "$REPO" --delete-branch || true; done
   for b in $(stack_branches); do
     git branch -D "$b" 2>/dev/null || true
@@ -54,6 +59,17 @@ finish() {
   branches="$(stack_branches)"
   [ -n "$branches" ] || { echo "No expense-stack/* branches found — did the skill run?"; exit 1; }
   echo "New stack:"; echo "$branches" | sed 's/^/  /'
+  # Non-skip guard: reject a stack whose nodes are the pre-teardown commits re-pushed.
+  if [ -f validation/.regen/prev-shas ]; then
+    for b in $branches; do
+      if grep -qxF "$(git rev-parse "$b")" validation/.regen/prev-shas; then
+        echo; echo "BLOCKED: $b still points at a pre-teardown commit ($(git rev-parse --short "$b"))."
+        echo "That's a CLONE, not a fresh skill run. Actually run /stack-changes to decompose the"
+        echo "monolith into new commits, then re-run finish. (README left untouched.)"; exit 1
+      fi
+    done
+    echo "non-skip guard: every node is a fresh commit ✅"
+  fi
   echo; echo "Verifying every node builds + tests in isolation…"
   vs="$(mktemp)"; cp validation/scripts/verify-stack.sh "$vs"  # survive branch checkouts
   # shellcheck disable=SC2086

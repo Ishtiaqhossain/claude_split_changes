@@ -3,3 +3,4 @@ node_modules/
 .DS_Store
 validation/demo/.stack-body.md
 STACK_PLAN.md
+validation/.regen/
