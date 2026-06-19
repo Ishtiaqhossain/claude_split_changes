@@ -32,4 +32,7 @@ if [ -n "$(git diff "$base" ql-1-refactor -- test.js)" ]; then
 fi
 echo "refactor proof: test.js byte-unchanged at the refactor node ✅"
 
-bash "$here/eval/run-eval.sh" "$PWD" "npx ava" ql-1-refactor ql-2-feat
+# --serial: quick-lru's suite has a boundary TTL test (delay == maxAge) that flakes under
+# concurrent event-loop contention on loaded CI runners; serial removes the jitter. (Our split's
+# correctness is proven separately by the byte-unchanged refactor check above.)
+bash "$here/eval/run-eval.sh" "$PWD" "npx ava --serial" ql-1-refactor ql-2-feat
