@@ -9,7 +9,7 @@ expert review framework.
 | Item | Status | Evidence |
 |------|--------|----------|
 | Layer 1 — detector fixture matrix (incl. adversarial) passes in CI | ✅ | [`stack-changes/scripts/detect-review-system.test.sh`](../stack-changes/scripts/detect-review-system.test.sh) — 12 cases; CI job `detector`. |
-| Layer 2 — decomposition reasoning proven on an *independent* corpus | ◑ **started** | Harness ([`eval/`](eval/)) + **2 independent, build-verified** splits on real external code: yocto-queue (easy) and **quick-lru (hard — a behavior-preserving refactor with tests unchanged, then a feature → exercises the refactor/behavior seam, the hardest to verify)**. Breadth (Go/Cargo/Gradle/Django, run 3×) still open. Rubric + corpus log below. |
+| Layer 2 — decomposition reasoning proven on an *independent* corpus | ◑ **started** | Harness ([`eval/`](eval/)) + **3 independent, build-verified** splits across **2 build systems**: yocto-queue (npm, easy), **quick-lru (npm, hard — a real behavior-preserving refactor)**, more-itertools (**python**, in CI). Run continuously by the CI `corpus` matrix. Still open: more ecosystems (Go/Cargo/Gradle) + the 3×-per-repo pass-rate. Rubric + corpus log below. |
 | Layer 3 — per-revision build/test loop in the skill, demonstrated green on 2+ build systems | ✅ | Skill section "Verify the Stack"; [`scripts/verify-stack.sh`](scripts/verify-stack.sh); transcript below; CI job `verify-stack`. |
 | README install commands work as written | ✅ | Clone URL → HTTP 200; repo name `claude_stack_changes`; demo PRs #11–#19 resolve. |
 | Detector failure modes + no-script fallback documented | ✅ | `SKILL.md` → "Detecting Your Review System". |
@@ -74,6 +74,7 @@ one-shot — and it is the single biggest remaining gap between "works here" and
 |---|------|------------------------|-----------|------------------------|-------|
 | 1 | [`sindresorhus/yocto-queue`](https://github.com/sindresorhus/yocto-queue) | `.peek()` + `.drain()` → 2 nodes | npm / ava | ✅ `verify-stack` green (2/2) | Real external code. **Easy** — two independent features, trivial topology, no refactor. Rubric: topo ✅ · separation n/a · no-over-split ✅ · test-proof ✅ · mechanics ✅ (github→branch-per-PR). |
 | 2 | [`sindresorhus/quick-lru`](https://github.com/sindresorhus/quick-lru) | add `.expiresIn()` → **refactor-first**: [1] extract `#getItem` seam, [2] add feature | npm / ava | ✅ `verify-stack` green (2/2) | Real external code. **Hard — exercises the refactor/behavior seam** (the most common one, and the hardest to verify). Node 1 is a genuine *behavior-preserving* refactor: `test.js` byte-unchanged vs base **and** ava green (71) — the proof. Node 2 adds the feature on the seam (ava 74). Rubric: topo ✅ · refactor/behavior separated ✅ (test diff = 0) · no-over-split ✅ · test-proof ✅ · mechanics ✅. |
+| 3 | [`more-itertools/more-itertools`](https://github.com/more-itertools/more-itertools) | `seekable.__getitem__` + `subfactorial()` → 2 nodes | **python / unittest** | ✅ `verify-stack` green (2/2) **in CI** | Real external code — **second build system**. Two independent feature additions (cherry-picks verified clean locally; the *tests* run on CI's Python 3.12, since the repo needs 3.10+ and the local sandbox is 3.9). Enforced by the CI `corpus` matrix. Rubric: topo ✅ · separation n/a · no-over-split ✅ · test-proof ✅ · mechanics ✅. |
 
 Reproduce #1:
 ```sh
@@ -96,8 +97,19 @@ git checkout -B split "$(git rev-parse 6c0efa5^)"            # base, before .exp
 # proof the refactor preserved behavior: `git diff <base> -- test.js` is empty, ava green.
 ```
 
-**Honest status:** **two independent, build-verified** splits now — one *easy* (yocto-queue, two
-features) and one *hard* (quick-lru: a real behavior-preserving refactor with `test.js` unchanged,
-then a feature). The hard case exercises the refactor/behavior seam — the most common one and the
-hardest to verify (clean separation, behavior preserved) — on code the author didn't write. Still missing: **breadth** — Go/Cargo/Gradle/Django, run 3× each
-with per-repo pass rates, which needs a CI matrix with those toolchains. That is the open work.
+**Honest status:** **three independent, build-verified** splits across **two build systems** —
+npm/ava (yocto-queue *easy*; quick-lru *hard*, a genuine behavior-preserving refactor) and
+python/unittest (more-itertools) — each cloned from code the author didn't write and verified
+node-by-node. yocto-queue (node) and more-itertools (python) run continuously in the CI `corpus`
+matrix.
+
+**Toolchain reality — why breadth lives in CI.** The local sandbox can't build modern external
+repos: Python is **3.9** (more-itertools needs 3.10+, fails to even import locally), and
+Go/Cargo/Gradle aren't installed at all. So build-system breadth belongs in a **CI matrix** that
+supplies current toolchains — the `corpus` job now does exactly that (`setup-node` +
+`setup-python@3.12`; `setup-go`/`setup-rust` slot in the same way, one matrix row each). The split
+construction (cherry-picks, refs) is pure git and is verified locally; only the *build+test* needs
+the toolchain, which is what CI provides.
+
+**Still open:** more ecosystems (Go/Cargo/Gradle/Django — add a matrix row + a corpus script each)
+and the **3×-per-repo pass-rate** methodology (each entry is run once so far).

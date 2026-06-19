@@ -58,17 +58,30 @@ jobs:
             py-0 py-1 py-2 py-3
 
   corpus:
-    name: independent corpus (external repos)
+    name: corpus ${{ matrix.entry }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false   # one ecosystem failing shouldn't hide the others
+      matrix:
+        include:
+          - { entry: 'yocto-queue (node)',    toolchain: node,   script: validation/eval/corpus/yocto-queue.sh }
+          - { entry: 'more-itertools (python)', toolchain: python, script: validation/eval/corpus/more-itertools.sh }
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      # Each entry clones a real external repo the author didn't build, splits a
+      # bundled change, and verifies each node in isolation. Breadth across build
+      # systems lives here because the local sandbox lacks current toolchains
+      # (Python 3.9, no Go/Cargo/Gradle) — CI provides them. See VALIDATION.md.
+      - if: matrix.toolchain == 'node'
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
-      # Clones a real external repo the author didn't build, splits a bundled
-      # change, and verifies each node in isolation — independence + objective check.
-      - name: yocto-queue — split a bundled change, verify each node
-        run: bash validation/eval/corpus/yocto-queue.sh
+      - if: matrix.toolchain == 'python'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: split a bundled change, verify each node
+        run: bash ${{ matrix.script }}
 
   readme-fresh:
     name: README flagship block in sync with the demo
