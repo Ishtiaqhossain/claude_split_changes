@@ -7,13 +7,10 @@ description: Splits a large change into small, single-purpose units of review �
 
 ## Overview
 
-**One diff, one thesis.** Each change should make exactly one argument — and that argument
-should be buildable and testable by itself.
-
-Think of a change as a *paragraph with a topic sentence*, or a *proof with a single claim*. The
-reviewer's job is to evaluate one thesis: "does this change do what it says, correctly?" If they
-can't state the thesis in a sentence, the change is carrying more than one — split it. "One
-thing" isn't a size rule; it's a *communication* rule. Size follows from it.
+**One diff, one thesis.** Each change should make exactly one argument — and that argument should
+be buildable and testable by itself. "One thing" isn't a size rule; it's a *communication* rule —
+if a reviewer can't state the change's thesis in one sentence, it's carrying more than one. Size
+follows from that.
 
 This skill is about decomposition: given a change that already exists (or is fully designed),
 how do you carve it into a stack where every change stands on its own and the ordering is
@@ -83,45 +80,28 @@ A change that builds but has no way to prove it works is not done — "buildable
 itself" is one requirement, not two optional ones.
 
 > **Atomic commits are not atomic reviews.** The unit of review is the *diff a reviewer opens* —
-> the whole PR/diff/CL — not your individual commits. Splitting a 900-line change into tidy
-> 80-line commits inside **one** PR still asks the reviewer to evaluate 900 lines and many
-> theses at once. To make a change reviewable, split the *reviewable unit*: open a **stack** of
-> small changes, not one big change with a clean commit history. (Tidy commits are still worth
-> it — they just aren't a substitute for splitting the review.)
+> the whole PR/diff/CL. Tidy 80-line commits inside **one** 900-line PR still ask the reviewer to
+> evaluate 900 lines at once. Split the *reviewable unit*: open a **stack** of small changes.
 
 ## Right-Sizing: Don't Over-Split
 
-"One thing" is about a single *concern*, not a minimum line count. The failure mode this
-section guards against is the opposite of a megachange: shattering a large change into so many
-tiny pieces that the **stack itself** becomes the problem.
+"One thing" is a single *concern*, not a minimum line count. Over-splitting has real costs — every
+change is a review round-trip, a CI run, and a rebase when its parent lands — so a stack of twenty
+interdependent tiny pieces is *worse* than one well-organized change. **Aim for the fewest changes
+that each still do one thing and stand on their own:**
 
-Over-splitting has real costs. Every change carries fixed overhead — a review round-trip,
-approvals, a CI/presubmit run, a rebase when its parent lands. Twenty changes that only make
-sense together cost twenty times that overhead and give the reviewer a *worse* experience than
-one well-organized change: they have to hold the whole stack in their head to understand the
-first piece.
+- **Don't split a single concern to hit a line target.** If change 1 can't be understood, tested,
+  or motivated without change 2, fold them.
+- **Each change must be motivatable alone** — its description justifies landing it on its own
+  terms, not "setup for the next one." No independent value and no test of its own = a fragment;
+  merge it upward.
+- **Batch trivial, same-concern, same-owner edits** — one "prep" refactor, not one change per call
+  site. (Thousands of call sites = an LSC; see [At Scale](#at-scale).)
+- **Keep stacks shallow — roughly 3–7 deep.** Deeper usually means some changes are independent
+  (base on trunk, review in parallel), or the work is really a codemod/LSC.
 
-**Right-size, don't minimize.** Aim for the *fewest* changes that each still do one thing and
-stand on their own.
-
-- **Don't split a single concern to hit a line target.** If change 1 can't be understood,
-  tested, or motivated without change 2, they're one change. Fold them.
-- **Each change must be motivatable alone.** Its description should justify landing it on its
-  own terms — not "setup for the next one." A change with no independent value and no test of
-  its own is a fragment; merge it upward.
-- **Batch trivial, same-concern, same-owner edits.** One "prep" refactor that renames a symbol
-  across a module beats one change per call site. (If it's thousands of call sites, it's an
-  LSC — see [At Scale](#at-scale).)
-- **Keep stacks shallow — roughly 3–7 deep.** A deeper stack usually means one of two things:
-  some changes are actually independent and should base on trunk and review in parallel, or the
-  work is really a codemod/LSC rather than a hand-built stack.
-
-> **Over-split litmus:** if you can't write a one-line motivation for a change without
-> referencing a *later* change in the stack, it's too small. Merge it upward.
-
-The target is a small number of cohesive changes, not the largest possible number of tiny ones.
-A large change is not an instruction to produce many PRs — it's an instruction to find the
-*natural seams*, which are usually few.
+> **Over-split litmus:** if you can't write a one-line motivation for a change without referencing
+> a *later* change in the stack, it's too small. Merge it upward.
 
 ## The Decomposition Process
 
@@ -161,6 +141,10 @@ treat all of it as risky. Split, and each half becomes easy:
 
 - The refactor change: "tests are identical and still green → behavior is preserved."
 - The feature change: a small diff against already-prepared code → the new behavior is the whole story.
+
+**Split by thesis, not by layer.** "PR1: models, PR2: utils, PR3: tests, PR4: wire it up" is the
+classic bad split — each piece has no independent value and nothing to prove until the last. Every
+change carries its own thesis *and* its proof. (Worked example: [`reference/why.md`](reference/why.md).)
 
 ### 3. Order by dependency
 
@@ -263,55 +247,15 @@ file current as the plan changes (check off landed nodes).
 
 ## The Refactor-First Pattern
 
-**When you add a feature on top of existing code, the first changes are pure refactors that
-reshape the existing code so the feature becomes a small diff.** (When a change doesn't sit on
-existing code, there's nothing to refactor first — split along the other
-[seams](#2-find-the-seams-refactor-vs-behavior-is-the-most-common-one).)
-
-```
-Naive: one giant change
-  ┌─────────────────────────────────────────────┐
-  │ feat: add export-to-CSV                       │
-  │  • refactors Report core (300 lines)          │  ← reviewer can't tell
-  │  • adds a new formatter abstraction (200)     │     refactor from feature
-  │  • adds CSV feature + tests (250)             │
-  └─────────────────────────────────────────────┘
-                 900 lines, one "LGTM"
-
-Refactor-first: a prepared stack
-  [1/4] refactor: extract Report core into a seam     (no behavior change, tests unchanged)
-  [2/4] refactor: introduce Formatter interface        (no behavior change, existing formatter
-                                                         re-expressed through it)
-  [3/4] feat: add CsvFormatter behind a flag           (small — plugs into the seam)
-  [4/4] feat: enable CSV export + wire up UI + tests    (small — flips the flag, adds tests)
-```
-
-By the time change 4 lands, the "feature" is a tiny diff because changes 1–2 did the structural
-work in isolation, where it was easy to verify they changed nothing.
+**When you add a feature on top of existing code, the first changes are pure refactors that reshape
+the existing code so the feature becomes a small diff.** The refactors land first, each proving it
+changed nothing (existing tests pass *unchanged*); by the time the feature change lands, it's a
+tiny diff against already-prepared code. When a change doesn't sit on existing code, there's nothing
+to refactor first — split along the other
+[seams](#2-find-the-seams-refactor-vs-behavior-is-the-most-common-one).
 
 *(This repo's `validation/demo/` carries this further — an expense-report monolith carved into a
 refactor-first stack of small PRs.)*
-
-## Bad Split vs Good Split
-
-A split is only useful if **every change has a thesis and a proof.** The most common mistake is
-splitting by *layer* instead of by *thesis*:
-
-**❌ Bad — split by layer.** Each piece has no independent value and nothing to prove:
-```
-PR 1: add models
-PR 2: add utils
-PR 3: add tests
-PR 4: wire everything
-```
-PRs 1–3 don't *do* anything a reviewer can evaluate or a user can use — the behavior only appears
-in PR 4. "Add tests" with nothing to test, "add models" that nothing calls: these are fragments,
-and a reviewer can't tell if PR 1 is right until PR 4 exists.
-
-**✅ Good — split by thesis** (the refactor-first stack shown above): each change states one thesis
-and carries its proof — the refactors keep existing tests green (that's how you know behavior is
-preserved); the features ship their own tests. You can review, approve, and roll back any one on
-its own.
 
 ## Dependency Types & Stacking
 
@@ -384,11 +328,9 @@ commits, or `git reset` to uncommit and re-stage in single-thesis pieces — and
 to a PR/diff/CL when you push. The decomposition is the same work whether the review tool is
 chosen yet or not.
 
-**Detect and adapt — don't refuse.** Use the result to pick the right *plumbing*, not to gate
-the skill out of branch-per-PR repos. The decomposition principles — one diff one thesis,
-refactor-first, communicate the dependency — are identical everywhere; only the stacking
-commands change. A plain-GitHub team splitting with branches gets exactly the same review
-benefit as a Sapling team splitting with commits.
+**Detect and adapt — don't refuse.** The result picks the *plumbing*, not whether to split. The
+decomposition (one diff one thesis, refactor-first, communicate the dependency) is identical
+everywhere; only the stacking commands change.
 
 ## Stacking in Your Review System
 
@@ -511,25 +453,6 @@ presubmit economics, ownership-aligned splits, feature-gating over long branches
 for land queues, and the **LSC/codemod escape hatch** for repo-wide sweeps (don't hand-split a
 3,000-file rename — generate it). Full notes: [`reference/at-scale.md`](reference/at-scale.md).
 
-## Common Rationalizations
-
-Rebuttals to "it's fine as one big change," "smaller is always better," "atomic commits = atomic
-review," "I'll split after approval," and the rest:
-[`reference/rationalizations.md`](reference/rationalizations.md).
-
-## Red Flags
-
-Symptoms a split (or non-split) has gone wrong — beyond what the
-[One-Thing Rule](#the-one-thing-rule-one-diff-one-thesis) and [Verification](#verification)
-already cover:
-
-- One big PR justified by "the commits are clean" — tidy commits, but the reviewable diff is still huge
-- A stack so deep the bottom never lands and the top rots (or the land queue never drains it)
-- A reviewer must read change 7 to understand why change 1 exists, or has to ask "where do I start?"
-- One change sprawls across many OWNERS, blocking on the slowest approver
-- Hand-splitting what should be a codemod / LSC
-- The dependency lives only in your head — not in any title, description, or stack graph
-
 ## Verify the Stack (per-revision)
 
 Don't *assert* that each change builds — **observe it.** The skill doesn't need to understand
@@ -583,5 +506,7 @@ stack level:
 
 ## Further Reading
 
-Google's **Small CLs** and **Speed of Code Reviews** guidance, plus the "one diff, one thesis"
-framing: [`reference/further-reading.md`](reference/further-reading.md).
+- Rebuttals to common excuses ("it's fine as one big change," "I'll split after approval," "atomic
+  commits = atomic review"): [`reference/rationalizations.md`](reference/rationalizations.md).
+- Google's **Small CLs** + **Speed of Code Reviews**, and the "one diff, one thesis" framing:
+  [`reference/further-reading.md`](reference/further-reading.md).

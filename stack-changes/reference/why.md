@@ -21,3 +21,21 @@ monorepo each, lean heavily on **stacked changes**, and treat *small* as a cultu
 not an afterthought. The fuller version of these practices — small-CL culture, presubmit
 economics, ownership-aligned splits, feature-gating, land queues, and the LSC escape hatch —
 lives in [`at-scale.md`](at-scale.md).
+
+## Split by thesis, not by layer
+A change is a *paragraph with a topic sentence*, or a *proof with a single claim*: a reviewer
+should be able to state its one thesis in a sentence. The most common bad split ignores this and
+carves by **layer** instead:
+
+```
+PR 1: add models
+PR 2: add utils
+PR 3: add tests
+PR 4: wire everything
+```
+
+PRs 1–3 don't *do* anything a reviewer can evaluate or a user can use — the behavior only appears
+in PR 4. "Add tests" with nothing to test, "add models" that nothing calls: these are fragments. A
+good split is by *thesis* (e.g. the refactor-first stack), where each change states one thesis and
+carries its proof — refactors keep existing tests green, features ship their own tests — so any one
+can be reviewed, approved, and rolled back on its own.
